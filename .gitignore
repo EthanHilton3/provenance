@@ -1,0 +1,13 @@
+# Secrets
+.env
+.env.*
+
+# Dependencies / build
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+dist/
+
+# Personal photos
+photos/
