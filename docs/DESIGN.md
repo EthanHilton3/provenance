@@ -51,6 +51,11 @@ An earlier test of a different idea (Spoiler Shield) is in the same repo; it is 
 
 The model separates three levels: a **work** (A New Hope), a **release** of it (the 4K steelbook with barcode 0786936…) and my **item** (my copy, opened, bought in 2021). Items are private; works and releases are shared by everyone.
 
+![ERD: shared catalog (sets, works, releases, categories, catalog_cache) and private RLS tables (items, photos, intake_jobs, occasions, people, collections, wishlist)](images/erd.png)
+
+<details>
+<summary>Full ERD as text (Mermaid, includes every column)</summary>
+
 ```mermaid
 erDiagram
     CATEGORIES ||--o{ CATEGORIES : "parent_id"
@@ -143,6 +148,8 @@ erDiagram
     }
 ```
 
+</details>
+
 An item points to at most one release, and a release lists the works it contains, so a box set like the Lord of the Rings trilogy is one release with three works. Unique things (the scarecrow, a family photo) have no release and live on their category's fields alone.
 
 - **Categories** are a tree (`parent_id`) whose `field_template` lists the fields for that kind of thing; children inherit them. Brands and platforms are attributes, not categories, so "all my controllers" and "all my Nintendo things" are both one query.
@@ -161,6 +168,11 @@ Key queries:
 ## System design
 
 A phone-first Vue app talks to one FastAPI backend, which owns every API key, the AI intake workers and the catalog lookups; Supabase provides Postgres, photo storage and sign-in. It is the same stack as my Continuity project, so setup is days, not weeks.
+
+![Tech stack: phone browser (Vue 3) to FastAPI backend to Supabase; the backend alone calls OpenAI, UPC lookup, TMDB, Open Library and IGDB](images/tech-stack.png)
+
+<details>
+<summary>System diagram as text (Mermaid)</summary>
 
 ```mermaid
 flowchart LR
@@ -206,6 +218,8 @@ flowchart LR
     CAT -->|cache responses| PG
     W -->|card for confirmation| PG
 ```
+
+</details>
 
 The browser signs in with Supabase Auth and sends its token to the API, which checks it on every request; the browser never calls OpenAI or a catalog directly.
 
