@@ -1,6 +1,7 @@
 # Secrets
 .env
 .env.*
+!.env.example
 
 # Dependencies / build
 node_modules/
@@ -11,3 +12,4 @@ dist/
 
 # Personal photos
 photos/
+.pytest_cache/

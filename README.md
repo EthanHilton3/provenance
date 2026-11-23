@@ -31,10 +31,18 @@ cd tests/db && ../../.venv/Scripts/python -m pytest -v
 
 The tests cover: one user can't read or write another's items, concurrent workers never claim the same intake job, simultaneous scans of a new barcode make one release (`ON CONFLICT`), optimistic locking, and the share link hiding price and location.
 
-### App
+### Backend
 
-No app code yet. Once it exists, this section will cover:
+```sh
+cp .env.example .env        # fill in the Supabase keys (never commit .env)
+.venv/Scripts/python -m pip install -r backend/requirements.txt
+cd backend && ../.venv/Scripts/python -m pytest -q                       # unit tests, no network
+PROVENANCE_LIVE=1 ../.venv/Scripts/python -m pytest tests/test_live_cloud.py   # real cloud project, throwaway users
+../.venv/Scripts/python -m uvicorn app.main:app --reload                 # http://localhost:8000/docs
+```
 
-1. Copy `.env.example` to `.env` and fill in the Supabase and API keys (never commit `.env`).
-2. Backend: create a `.venv`, install requirements, start FastAPI.
-3. Frontend: `npm install`, then `npm run dev`.
+API so far: `/api/health`, `/api/me`, `/api/categories`, `/api/categories/{id}/fields`, `/api/items` (list with keyset paging, get, create, patch with `version`, delete).
+
+### Frontend
+
+Not built yet: `npm install`, then `npm run dev`.
