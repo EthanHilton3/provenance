@@ -49,4 +49,15 @@ API so far: `/api/health`, `/api/me`, `/api/categories`, `/api/categories/{id}/f
 
 ### Frontend
 
-Not built yet: `npm install`, then `npm run dev`.
+A phone-first Vue 3 + Vite app in [frontend/](frontend/): sign in or sign up, items grouped by category, item detail with edit (and the "changed since you loaded it" 409), delete, and adding an item by hand with photos.
+
+```sh
+cd frontend
+cp .env.example .env.local  # the Supabase URL and publishable (anon) key; never the secret key
+npm install
+npm run dev                 # http://localhost:5174; /api is forwarded to the backend on :8000
+npm run dev -- --host       # also reachable from a phone on the same Wi-Fi (use the Network URL it prints)
+npm test                    # the API wrapper and the edit/409 rules (Node's test runner, no browser)
+```
+
+`API_TARGET` in `.env.local` points the `/api` forwarding at a backend on another port (for example `http://127.0.0.1:8001` when another project already uses 8000). The category fields on the item screens all come from one component, [CategoryFields.vue](frontend/src/components/CategoryFields.vue), so the full fields form can replace it.
