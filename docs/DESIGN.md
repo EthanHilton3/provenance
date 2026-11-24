@@ -45,6 +45,25 @@ With 26 photos, each percentage is roughly plus or minus 15 points; the differen
 - **The model proposes, code decides:** catalog searches failed when the model wrote the search text ("Princess Mononoke (1997)"). The model returns a clean title, year and kind; code searches with fallbacks.
 - **My answers became columns:** nearly every item had a condition grade, a source (eBay, a wedding gift from a named person) and an approximate date, so those are real fields, not notes.
 
+### Group photos: one photo of many items (Nov 23 to 24)
+
+I also tested photos that show many items at once: 15 shelves and displays (books, manga, Blu-rays, games, amiibo, cards). The model lists every distinct item it can identify, and I judged each listed item by hand (right, close, wrong or duplicate) and counted how many entries a perfect list would have. Setups were labelled A to E while I judged, so I didn't pick by model name. I finished 4 photos, all movie, game and mixed shelves, about 60 listed items per setup.
+
+| Setup | Right or close | Strictly right | Found of what's there | Made-up items | Cost per photo |
+| --- | --- | --- | --- | --- | --- |
+| Luna, whole photo, 1024 px | 87% | 50% | 66% | 13% | $0.001 |
+| Luna, whole photo, 2048 px | 88% | 55% | 84% | 12% | $0.001 |
+| Luna, 4 overlapping tiles | 86% | 49% | 89% | 14% | $0.005 |
+| **Sol, whole photo, 2048 px** | **100%** | 79% | **92%** | **0%** | $0.027 |
+| Sol, 4 overlapping tiles | 98% | **81%** | 92% | 2% | $0.092 |
+
+With 4 photos, differences of a few points are noise; the gap between Sol (0 to 2% made-up) and Luna (12 to 14%) is large enough to trust. What it changed in the design:
+
+- **Group photos use Sol, whole photo, about 2048 px, one call.** Sol invented nothing on movies, games and mixed shelves, where Luna invented about one item in eight. At about 3 cents a photo that is affordable, because one photo yields 15 to 20 items. Single-item intake stays on Luna.
+- **No tiling.** Cutting each photo into 4 overlapping, higher-resolution tiles and merging the lists cost 3 to 4 times more and took about 2.5 minutes a photo, and it didn't help: Sol found the same 92%, and Luna found more (84% to 89%) but was no more accurate. The limit is what a photo can show, not pixels, so there is no tile fan-out job to build.
+- **What the models miss is the same as for single items:** sealed vs opened (all of them struggled), the exact edition or product (the Final Fantasy Pixel Remaster set, a Star Fox game), the volume numbers in a run (Trigun vols 1 and 3 read as 1 and 2), and small or odd things (a cologne bottle, popcorn tins read as paper cups). Group results go on a confirmation grid with the one-tap follow-up question for those details; they are not saved automatically.
+- **Not yet tested:** plain book shelves, where a quick check of two shelves looked good. The other 11 photos are not judged.
+
 An earlier test of a different idea (Spoiler Shield) is in the same repo; it is not part of this project.
 
 ## Data model (ERD)
@@ -229,7 +248,7 @@ The browser signs in with Supabase Auth and sends its token to the API, which ch
 | Backend | FastAPI (Python) | Reuses Continuity's patterns; Python has the image tools (Pillow, HEIC support) |
 | Database | Supabase Postgres | RLS for the private/shared line, pgvector for duplicate releases, pg_trgm for search, a SKIP LOCKED job queue |
 | Files and sign-in | Supabase Storage + Auth | Private bucket with signed URLs; one provider for both |
-| AI | OpenAI GPT-6 Luna, low effort | Best accuracy per dollar in the feasibility test |
+| AI | OpenAI GPT-6 Luna, low effort, for single items; GPT-6 Sol for group photos | Best accuracy per dollar for one item; for many items in one photo Sol invented nothing where Luna did (feasibility tests) |
 | Catalogs | UPC lookup (releases), TMDB (films and shows), Open Library (books by ISBN), IGDB (games) | The barcode or ISBN identifies the release; the others name the work |
 
 **Intake, step by step**
@@ -240,6 +259,8 @@ The browser signs in with Supabase Auth and sends its token to the API, which ch
 4. **Otherwise:** a worker claims the job, sends the photos to Luna, and gets back a schema-checked card: category, name, edition, format, attributes, a clean title, year and kind, and one follow-up question.
 5. The catalog service searches with that clean title (with fallbacks), links the work, and checks pgvector for a near-identical existing release.
 6. I answer the follow-up question, fix anything, and confirm. That saves my item and, if no release existed, a new unverified shared release.
+
+**Group photo (a shelf or display):** the same pipeline with one change at step 4. One job holds the whole photo at about 2048 px, and a single Sol call returns a list of every distinct item, each with a name, what the model read on it, its position in the photo and a confidence. The photo is not tiled or cropped. Each listed item becomes a card on one confirmation grid, so I confirm a shelf in one pass; steps 5 and 6 then run per card, with the follow-up question for sealed vs opened and the exact edition. Items the model says it can see but cannot identify show as "unidentified" so I can add them by hand.
 
 ## Security, scaling and costs
 
@@ -285,11 +306,11 @@ The plan is 37.5 hours over 19 working days, plus about 3 hours already spent on
 
 **Week 1: design and core engine**
 
-- [ ] **Tue Nov 17** (1.5 h): Project Log in the repo; presentation signup; photograph barcodes and backs of 8 items; create the repo and Supabase project
+- [x] **Tue Nov 17** (1.5 h): Project Log in the repo; presentation signup; photograph barcodes and backs of 8 items; create the repo and Supabase project
 - [ ] **Wed Nov 18** (1.5 h): barcode test (UPC lookup on the 8 items); export this design to Markdown in the repo; book the system design interview
-- [ ] **Thu Nov 19** (1.5 h): pitch in class and in the channel; system design interview; submit Initial Design
-- [ ] **Fri Nov 20** (2 h): schema migration (all 14 tables), RLS policies, seed the category tree
-- [ ] **Sat Nov 21** (2.5 h): FastAPI skeleton with Supabase auth (from Continuity); items API
+- [x] **Thu Nov 19** (1.5 h): pitch in class and in the channel; system design interview; submit Initial Design
+- [x] **Fri Nov 20** (2 h): schema migration (all 14 tables), RLS policies, seed the category tree
+- [x] **Sat Nov 21** (2.5 h): FastAPI skeleton with Supabase auth (from Continuity); items API
 
 **Week 2: core engine, then Thanksgiving**
 
@@ -300,7 +321,7 @@ The plan is 37.5 hours over 19 working days, plus about 3 hours already spent on
 
 **Week 3: AI intake and releases**
 
-- [ ] **Mon Nov 30** (2.5 h): confirmation card UI with the one-tap follow-up question and an occasion picker; batch intake ("these are all from Christmas 2025")
+- [ ] **Mon Nov 30** (2.5 h): confirmation card UI with the one-tap follow-up question and an occasion picker; batch intake ("these are all from Christmas 2025"); group-photo mode: one whole photo to Sol, a list of items back, one confirmation grid, no tiling (see Group photos in the feasibility evidence)
 - [ ] **Tue Dec 1** (2.5 h): barcode scan in the browser; release lookup by barcode; UPC API with `catalog_cache`
 - [ ] **Wed Dec 2** (2.5 h): catalog service (TMDB, Open Library) with fallbacks; user-created releases; pgvector duplicate check
 - [ ] **Thu Dec 3** (1.5 h): **milestone: intake end to end** on my 26 items; log accuracy against the feasibility test

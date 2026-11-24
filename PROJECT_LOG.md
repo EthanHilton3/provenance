@@ -14,4 +14,5 @@ Hours start from active working time measured in my Claude Code session timestam
 | 11/22/2026 | Created the Supabase cloud project, connected the CLI, set up keys and `.env` | 0.5 |
 | 11/22/2026 | FastAPI backend with Supabase auth and the items API (tests included), then a code review and fixes on 11/23. [Backend](backend/) | 0.5 |
 | 11/23/2026 | Progress tracker: checked the plan against the repo, reconstructed hours from session timestamps | 0.5 |
-| **Total** | | **6.0** |
+| 11/23/2026 | Group photo feasibility test: 15 photos that each show many items (shelves, displays). Built a harness that returns every distinct item in a photo and ran it on Luna (1024 and 2048 px) and Sol; built a blind judging page and hand-judged 4 photos (about 280 listed items across 5 setups). Then tested tiling: 4 overlapping tiles per photo plus a merge step. Results: Sol 98-100% right-or-close with 0-2% made-up items, Luna 86-88% with 12-14% made-up. Tiling cost 3-4x more and did not help, so the design uses one whole-photo Sol call and a confirmation grid. Updated the design doc and build plan with the conclusion | 1.5 |
+| **Total** | | **7.5** |
