@@ -306,34 +306,34 @@ The plan is 37.5 hours over 19 working days, plus about 3 hours already spent on
 
 **Week 1: design and core engine**
 
-- [x] **Tue Nov 17** (1.5 h): Project Log in the repo; presentation signup; photograph barcodes and backs of 8 items; create the repo and Supabase project
-- [ ] **Wed Nov 18** (1.5 h): barcode test (UPC lookup on the 8 items); export this design to Markdown in the repo; book the system design interview
-- [x] **Thu Nov 19** (1.5 h): pitch in class and in the channel; system design interview; submit Initial Design
-- [x] **Fri Nov 20** (2 h): schema migration (all 14 tables), RLS policies, seed the category tree
-- [x] **Sat Nov 21** (2.5 h): FastAPI skeleton with Supabase auth (from Continuity); items API
+- [x] **S1: Tue Nov 17** (1.5 h): Project Log in the repo; presentation signup; photograph barcodes and backs of 8 items; create the repo and Supabase project
+- [x] **S2: Wed Nov 18** (1.5 h): barcode test (UPC lookup on the 8 items); export this design to Markdown in the repo; book the system design interview
+- [x] **S3: Thu Nov 19** (1.5 h): pitch in class and in the channel; system design interview; submit Initial Design
+- [x] **S4: Fri Nov 20** (2 h): schema migration (all 14 tables), RLS policies, seed the category tree
+- [x] **S5: Sat Nov 21** (2.5 h): FastAPI skeleton with Supabase auth (from Continuity); items API
 
 **Week 2: core engine, then Thanksgiving**
 
-- [ ] **Mon Nov 23** (2 h): photo upload: keep the date taken, strip GPS and other metadata, resize, private bucket, signed URLs
-- [ ] **Tue Nov 24** (2.5 h): Vue screens: items grouped by category, item detail, add an item by hand
-- [ ] **Wed Nov 25** (1.5 h): category fields form; **milestone: core demo** (add, browse, edit, photos)
-- [ ] **Sat Nov 28** (2.5 h): `intake_jobs` queue and worker (SKIP LOCKED); Luna prompt and schema from the feasibility test
+- [x] **S6: Mon Nov 23** (2 h): photo upload: keep the date taken, strip GPS and other metadata, resize, private bucket, signed URLs
+- [ ] **S7: Tue Nov 24** (2.5 h): Vue screens: items grouped by category, item detail, add an item by hand
+- [ ] **S8: Wed Nov 25** (1.5 h): category fields form; **milestone: core demo** (add, browse, edit, photos)
+- [ ] **S9: Sat Nov 28** (2.5 h): `intake_jobs` queue and worker (SKIP LOCKED); Luna prompt and schema from the feasibility test
 
 **Week 3: AI intake and releases**
 
-- [ ] **Mon Nov 30** (2.5 h): confirmation card UI with the one-tap follow-up question and an occasion picker; batch intake ("these are all from Christmas 2025"); group-photo mode: one whole photo to Sol, a list of items back, one confirmation grid, no tiling (see Group photos in the feasibility evidence)
-- [ ] **Tue Dec 1** (2.5 h): barcode scan in the browser; release lookup by barcode; UPC API with `catalog_cache`
-- [ ] **Wed Dec 2** (2.5 h): catalog service (TMDB, Open Library) with fallbacks; user-created releases; pgvector duplicate check
-- [ ] **Thu Dec 3** (1.5 h): **milestone: intake end to end** on my 26 items; log accuracy against the feasibility test
-- [ ] **Fri Dec 4** (2.5 h): collections, occasions and people views ("everything from our wedding"); sharing by link
-- [ ] **Sat Dec 5** (2.5 h): sets and "what am I missing?"; thank-you tracker for gift occasions; load test the job queue with 2 workers and 100 photos
+- [ ] **S10: Mon Nov 30** (2.5 h): confirmation card UI with the one-tap follow-up question and an occasion picker; batch intake ("these are all from Christmas 2025"); group-photo mode: one whole photo to Sol, a list of items back, one confirmation grid, no tiling (see Group photos in the feasibility evidence)
+- [ ] **S11: Tue Dec 1** (2.5 h): barcode scan in the browser; release lookup by barcode; UPC API with `catalog_cache`
+- [ ] **S12: Wed Dec 2** (2.5 h): catalog service (TMDB, Open Library) with fallbacks; user-created releases; pgvector duplicate check
+- [ ] **S13: Thu Dec 3** (1.5 h): **milestone: intake end to end** on my 26 items; log accuracy against the feasibility test
+- [ ] **S14: Fri Dec 4** (2.5 h): collections, occasions and people views ("everything from our wedding"); sharing by link
+- [ ] **S15: Sat Dec 5** (2.5 h): sets and "what am I missing?"; thank-you tracker for gift occasions; load test the job queue with 2 workers and 100 photos
 
 **Week 4: ship and report**
 
-- [ ] **Mon Dec 7** (1.5 h): deploy (static frontend, one backend container); collaboration reviews
-- [ ] **Tue Dec 8** (2 h): final report: diagrams, learnings, AI integration, scaling, concurrency, failover
-- [ ] **Wed Dec 9** (1.5 h): demo video, class channel post, presentation prep
-- [ ] **Thu Dec 10** (1 h): buffer; submit the final report and the collaboration report
+- [ ] **S16: Mon Dec 7** (1.5 h): deploy (static frontend, one backend container); collaboration reviews
+- [ ] **S17: Tue Dec 8** (2 h): final report: diagrams, learnings, AI integration, scaling, concurrency, failover
+- [ ] **S18: Wed Dec 9** (1.5 h): demo video, class channel post, presentation prep
+- [ ] **S19: Thu Dec 10** (1 h): buffer; submit the final report and the collaboration report
 
 ## Business model and competition
 
@@ -371,7 +371,7 @@ The biggest risk is release data for movies and TV, which no open API covers; th
 | Risk | Fallback |
 | --- | --- |
 | No open API for physical movie editions (Blu-ray.com has no API, and scraping breaks its terms) | Barcode lookup first, then the AI reads the box and drafts a user-created release |
-| UPC lookup coverage and free-tier limits (about 100 a day) are unknown for my items | Barcode test on 8 items before Nov 22; cache every response |
+| UPC lookup coverage and free-tier limits (about 100 a day) | Tested on 15 items: UPCitemdb found 8 of 10 valid codes (all movies and games, no accessories) and every hit was right or close. Only 8 of 15 (53%) ended in a right release, so barcode lookup first, then the AI reads the box. Check-digit gate on every code; cache every response |
 | "Track anything" grows without end | MVP = the general engine + releases for movies, books and games; everything else is manual or AI-only |
 | Browser barcode scanning: the built-in BarcodeDetector API is not on iPhone Safari | zxing-js in the browser, or the AI reads the barcode digits from the photo |
 | Thanksgiving week (Nov 23 to 29) loses build days | Light days that week; core features land before it |
