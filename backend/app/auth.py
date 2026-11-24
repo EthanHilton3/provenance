@@ -10,6 +10,7 @@ from fastapi import Depends, Header, HTTPException, Request
 
 from .config import get_settings
 from .db import Rest, user_db
+from .storage import Storage, user_storage
 
 
 @dataclass(frozen=True)
@@ -50,3 +51,8 @@ async def current_user(request: Request, authorization: str | None = Header(defa
 def db_for(request: Request, user: AuthUser = Depends(current_user)) -> Rest:
     """A database handle that acts as this user, so Row Level Security applies."""
     return user_db(request.app.state.http, user.token)
+
+
+def storage_for(request: Request, user: AuthUser = Depends(current_user)) -> Storage:
+    """A photo-storage handle that acts as this user, so the bucket policies apply."""
+    return user_storage(request.app.state.http, user.token)

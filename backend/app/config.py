@@ -26,6 +26,10 @@ class Settings(BaseSettings):
         return self.supabase_url.rstrip('/') + '/rest/v1'
 
     @property
+    def supabase_storage_url(self) -> str:
+        return self.supabase_url.rstrip('/') + '/storage/v1'
+
+    @property
     def supabase_auth_url(self) -> str:
         return self.supabase_url.rstrip('/') + '/auth/v1'
 

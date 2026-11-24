@@ -10,6 +10,7 @@ from .auth import AuthUser, current_user
 from .config import get_settings
 from .db import DbError
 from .items import router as items_router
+from .photos import router as photos_router
 
 logger = logging.getLogger(__name__)
 
@@ -32,9 +33,10 @@ def create_app() -> FastAPI:
     @app.exception_handler(DbError)
     async def db_error(_: Request, exc: DbError):
         # Constraint, policy and bad-token failures are the caller's problem; anything else is ours.
+        # (File-storage errors take the same path as database ones.)
         status = exc.status if 400 <= exc.status < 500 or exc.status == 503 else 502
         if status >= 500:
-            logger.error('Database call failed: %s', exc)
+            logger.error('Supabase call failed: %s', exc)
         body = exc.body if isinstance(exc.body, dict) else {}
         # `detail` is always an object with `message`, the same shape as the stale-version 409.
         return JSONResponse({'detail': {'message': body.get('message', 'Database error')}, 'code': body.get('code')}, status)
@@ -48,6 +50,7 @@ def create_app() -> FastAPI:
         return {'id': user.id, 'email': user.email}
 
     app.include_router(items_router, prefix='/api')
+    app.include_router(photos_router, prefix='/api')
     return app
 
 

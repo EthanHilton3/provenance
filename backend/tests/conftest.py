@@ -4,7 +4,7 @@ import pytest
 
 # Set before the app is imported. Environment variables win over the repo-root .env, so unit tests
 # never touch real services or real keys. With PROVENANCE_LIVE=1 the real .env is used instead, so the
-# fake-key unit tests are skipped and only tests/test_live_cloud.py runs.
+# fake-key unit tests are skipped and only the tests/test_live_*.py files run.
 LIVE = bool(os.environ.get('PROVENANCE_LIVE'))
 if not LIVE:
     os.environ.update(
@@ -18,5 +18,5 @@ def pytest_collection_modifyitems(config, items):
     if LIVE:
         skip = pytest.mark.skip(reason='unit tests use fake keys; unset PROVENANCE_LIVE')
         for item in items:
-            if 'test_live_cloud' not in item.nodeid:
+            if 'test_live_' not in item.nodeid:
                 item.add_marker(skip)

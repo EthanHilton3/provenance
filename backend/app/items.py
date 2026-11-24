@@ -7,8 +7,10 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from .auth import db_for
+from .auth import db_for, storage_for
 from .db import Rest
+from .photos import remove_item_photos
+from .storage import Storage
 
 router = APIRouter()
 
@@ -136,7 +138,8 @@ async def update_item(item_id: UUID, body: ItemUpdate, db: Rest = Depends(db_for
 
 
 @router.delete('/items/{item_id}', status_code=204)
-async def delete_item(item_id: UUID, db: Rest = Depends(db_for)):
+async def delete_item(item_id: UUID, db: Rest = Depends(db_for), storage: Storage = Depends(storage_for)):
+    await remove_item_photos(db, storage, item_id)  # the database drops the photo rows with the item, not the files
     rows = await db.delete('items', {'id': f'eq.{item_id}'})
     if not rows:
         raise HTTPException(404, 'No such item')
