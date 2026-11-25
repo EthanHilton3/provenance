@@ -219,3 +219,21 @@ def test_categories_include_descriptions(client):
     fake = use(client, FakeSupabase([(200, [])]))
     client.get('/api/categories', headers=AUTH)
     assert fake.calls[0].url.params['select'].split(',') == ['id', 'parent_id', 'name', 'owner_id', 'description']
+
+
+def test_attributes_must_be_plain_values_and_the_error_names_the_key(client):
+    use(client, FakeSupabase())
+    base = {'name': 'x', 'category_id': CAT}
+    for bad in ({'material': {'a': 1}}, {'tags': ['a', 'b']}, {'piece_count': None}, {'k' * 65: 'v'}, {'': 'v'}, {'note': 'x' * 1001}):
+        assert client.post('/api/items', headers=AUTH, json={**base, 'attributes': bad}).status_code == 422, bad
+        assert client.patch(f'/api/items/{ITEM}', headers=AUTH, json={'version': 1, 'attributes': bad}).status_code == 422, bad
+    assert client.post('/api/items', headers=AUTH, json={**base, 'attributes': {f'k{i}': 'v' for i in range(101)}}).status_code == 422
+    loc = client.post('/api/items', headers=AUTH, json={**base, 'attributes': {'material': {'a': 1}}}).json()['detail'][0]['loc']
+    assert loc[:3] == ['body', 'attributes', 'material']
+
+
+def test_plain_attribute_values_are_stored_as_sent(client):
+    attrs = {'material': 'Ceramic', 'piece_count': 3, 'weight': 1.5, 'signed': True}
+    fake = use(client, FakeSupabase([(201, [{'id': ITEM}])]))
+    assert client.post('/api/items', headers=AUTH, json={'name': 'x', 'category_id': CAT, 'attributes': attrs}).status_code == 201
+    assert json.loads(fake.calls[0].content)['attributes'] == attrs  # True stays true, 3 stays 3

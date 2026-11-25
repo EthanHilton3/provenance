@@ -64,7 +64,7 @@
     <form v-else-if="item && editing" class="stack" @submit.prevent="save()">
       <h1>Edit</h1>
       <div class="card card-pad">
-        <ItemForm v-model:draft="draft" />
+        <ItemForm v-model:draft="draft" :errors="fieldErrors" />
       </div>
 
       <ConflictPanel v-if="conflict" :base="base" :current="conflict" :draft="draft" :label-for="(k) => labels[k]"
@@ -180,6 +180,7 @@ const base = ref(null)
 const draft = ref(null)
 const saving = ref(false)
 const saveError = ref('')
+const fieldErrors = ref({})
 const conflict = ref(null) // the current row after a 409
 
 function startEdit() {
@@ -188,6 +189,7 @@ function startEdit() {
   draft.value = draftFrom(item.value)
   conflict.value = null
   saveError.value = ''
+  fieldErrors.value = {}
   editing.value = true
   learnCategory(item.value.category_id)
 }
@@ -199,6 +201,7 @@ function cancelEdit() {
 /** Saves the draft. With `onto` (the current row after a 409) only your changed fields go, on their version. */
 async function save(onto) {
   saveError.value = ''
+  fieldErrors.value = {}
   const patch = buildPatch(base.value, await cleanDraft(draft.value), onto || base.value)
   if (!patch) {
     if (onto) item.value = onto
@@ -227,6 +230,7 @@ async function save(onto) {
       editing.value = false
     } else {
       saveError.value = e.message
+      fieldErrors.value = e.fields || {}
     }
   } finally {
     saving.value = false

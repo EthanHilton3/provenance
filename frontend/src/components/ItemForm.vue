@@ -5,11 +5,12 @@
       <span>Name</span>
       <input class="input" :value="draft.name" required maxlength="300" placeholder="e.g. Spirited Away, 4K steelbook"
         @input="patch({ name: $event.target.value })" />
+      <span v-if="errors.name" class="field-error" role="alert">{{ errors.name }}</span>
     </label>
 
     <CategoryPicker :model-value="draft.category_id" @update:model-value="patch({ category_id: $event })" />
 
-    <CategoryFields v-if="draft.category_id" :category-id="draft.category_id" :model-value="draft.attributes" editable
+    <CategoryFields v-if="draft.category_id" :category-id="draft.category_id" :model-value="draft.attributes" :errors="errors" editable
       @update:model-value="patch({ attributes: $event })" />
 
     <!-- On every item, whatever the category: columns, not category fields. Open when one is already filled in. -->
@@ -20,16 +21,19 @@
           <span>Franchise / series</span>
           <input class="input" :value="draft.franchise || ''" maxlength="300" placeholder="e.g. Zelda, Star Wars"
             @input="patch({ franchise: $event.target.value })" />
+          <span v-if="errors.franchise" class="field-error" role="alert">{{ errors.franchise }}</span>
         </label>
         <label class="field">
           <span>Brand / maker</span>
           <input class="input" :value="draft.brand || ''" maxlength="300" placeholder="e.g. Nintendo, LEGO, Pyrex"
             @input="patch({ brand: $event.target.value })" />
+          <span v-if="errors.brand" class="field-error" role="alert">{{ errors.brand }}</span>
         </label>
         <label class="field">
           <span>Signed by</span>
           <input class="input" :value="draft.signed_by || ''" maxlength="300" placeholder="Who signed it, if anyone"
             @input="patch({ signed_by: $event.target.value })" />
+          <span v-if="errors.signed_by" class="field-error" role="alert">{{ errors.signed_by }}</span>
         </label>
       </div>
     </details>
@@ -56,12 +60,14 @@
         <span>Where from</span>
         <input class="input" :value="draft.source || ''" maxlength="300" placeholder="Gift, eBay, Target…"
           @input="patch({ source: $event.target.value })" />
+        <span v-if="errors.source" class="field-error" role="alert">{{ errors.source }}</span>
       </label>
     </div>
 
     <label class="field">
       <span>Notes</span>
       <textarea class="input" :value="draft.notes || ''" maxlength="5000" @input="patch({ notes: $event.target.value })" />
+      <span v-if="errors.notes" class="field-error" role="alert">{{ errors.notes }}</span>
     </label>
   </div>
 </template>
@@ -72,7 +78,8 @@ import { CONDITIONS, MORE_DETAILS } from '../lib/item'
 import CategoryFields from './CategoryFields.vue'
 import CategoryPicker from './CategoryPicker.vue'
 
-const props = defineProps({ draft: { type: Object, required: true } })
+// errors: the API's validation errors by field name (lib/api.js fieldErrorsOf), shown next to the input.
+const props = defineProps({ draft: { type: Object, required: true }, errors: { type: Object, default: () => ({}) } })
 const emit = defineEmits(['update:draft'])
 const patch = (changes) => emit('update:draft', { ...props.draft, ...changes })
 

@@ -8,7 +8,7 @@
     <p v-if="loadError" class="notice notice-error" role="alert">{{ loadError }}</p>
 
     <fieldset class="card card-pad stack" :disabled="!!created">
-      <ItemForm v-model:draft="draft" />
+      <ItemForm v-model:draft="draft" :errors="fieldErrors" />
     </fieldset>
 
     <section class="card card-pad stack">
@@ -55,6 +55,7 @@ const draft = ref(emptyDraft())
 const uploads = useUploads()
 const busy = ref(false)
 const error = ref('')
+const fieldErrors = ref({})
 const loadError = ref('')
 const created = ref(null)
 const failed = ref(0)
@@ -66,12 +67,14 @@ const canSave = computed(() => draft.value.name.trim() && draft.value.category_i
 async function save() {
   if (!canSave.value) return
   error.value = ''
+  fieldErrors.value = {}
   busy.value = true
   try {
     // The item first: photos are uploaded to an item, so it has to exist.
     created.value = await api.createItem(createBody(await cleanDraft(draft.value)))
   } catch (e) {
     error.value = e.message
+    fieldErrors.value = e.fields || {}
     busy.value = false
     return
   }
