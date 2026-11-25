@@ -324,7 +324,7 @@ The plan is 37.5 hours over 19 working days, plus about 3 hours already spent on
 - [x] **S6: Mon Nov 23** (2 h): photo upload: keep the date taken, strip GPS and other metadata, resize, private bucket, signed URLs
 - [x] **S7: Tue Nov 24** (2.5 h): Vue screens: items grouped by category, item detail, add an item by hand
 - [x] **Category review, before S8:** go through the category tree and each category's fields (add, rename, merge, move; fields to add or drop), now that they show in the app; apply the changes as a new migration, not an edit to the seed
-- [ ] **S8: Wed Nov 25** (1.5 h): category fields form; **milestone: core demo** (add, browse, edit, photos)
+- [x] **S8: Wed Nov 25** (1.5 h): category fields form; **milestone: core demo** (add, browse, edit, photos)
 - [ ] **S9: Sat Nov 28** (2.5 h): `intake_jobs` queue and worker (SKIP LOCKED); Luna prompt and schema from the feasibility test
 
 **Week 3: AI intake and releases**
@@ -338,6 +338,7 @@ The plan is 37.5 hours over 19 working days, plus about 3 hours already spent on
 
 **Week 4: ship and report**
 
+- [ ] **Backlog, before S16:** whole-number category fields (Pieces, Year, Edition number) accept decimals; add an `integer` flag to the field library, the migration and the DB tests. Date, unit and required field types are deferred (nothing in S9 to S15 needs them)
 - [ ] **S16: Mon Dec 7** (1.5 h): deploy (static frontend, one backend container); collaboration reviews
 - [ ] **S17: Tue Dec 8** (2 h): final report: diagrams, learnings, AI integration, scaling, concurrency, failover
 - [ ] **S18: Wed Dec 9** (1.5 h): demo video, class channel post, presentation prep
