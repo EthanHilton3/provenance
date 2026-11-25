@@ -18,7 +18,9 @@ CS 452 final project. Design, ERD, system diagram and daily goals: [docs/DESIGN.
 
 ### Database (local)
 
-The schema lives in [supabase/migrations/](supabase/migrations/): 15 tables with row-level security, the starter category tree, and the `claim_intake_job()` queue function. Needs Docker Desktop running.
+The schema lives in [supabase/migrations/](supabase/migrations/): 15 tables with row-level security, the built-in category tree, and the `claim_intake_job()` queue function. Needs Docker Desktop running.
+
+The category tree (names, descriptions, fields) is edited in [supabase/category_tree.json](supabase/category_tree.json), never in SQL: `.venv/Scripts/python scripts/build_category_migration.py` regenerates its migration (`--check` says whether it is up to date), and a DB test fails if the two disagree.
 
 ```sh
 npx supabase start          # first run pulls images; applies the migrations
@@ -29,7 +31,7 @@ py -3.13 -m venv .venv
 cd tests/db && ../../.venv/Scripts/python -m pytest -v
 ```
 
-The tests cover: one user can't read or write another's items, concurrent workers never claim the same intake job, simultaneous scans of a new barcode make one release (`ON CONFLICT`), optimistic locking, and the share link hiding price and location.
+The tests cover: one user can't read or write another's items, concurrent workers never claim the same intake job, simultaneous scans of a new barcode make one release (`ON CONFLICT`), optimistic locking, the share link hiding price and location, and the category tree (it matches the tree file, and the redesign migration moves every old category's items to the right new one).
 
 ### Backend
 
@@ -57,7 +59,7 @@ cp .env.example .env.local  # the Supabase URL and publishable (anon) key; never
 npm install
 npm run dev                 # http://localhost:5174; /api is forwarded to the backend on :8000
 npm run dev -- --host       # also reachable from a phone on the same Wi-Fi (use the Network URL it prints)
-npm test                    # the API wrapper and the edit/409 rules (Node's test runner, no browser)
+npm test                    # the API wrapper, edit/409 rules, conditional fields and category search (Node's test runner, no browser)
 ```
 
-`API_TARGET` in `.env.local` points the `/api` forwarding at a backend on another port (for example `http://127.0.0.1:8001` when another project already uses 8000). The category fields on the item screens all come from one component, [CategoryFields.vue](frontend/src/components/CategoryFields.vue), so the full fields form can replace it.
+`API_TARGET` in `.env.local` points the `/api` forwarding at a backend on another port (for example `http://127.0.0.1:8001` when another project already uses 8000). The category fields on the item screens all come from one component, [CategoryFields.vue](frontend/src/components/CategoryFields.vue); the rules for conditional fields are in [fields.js](frontend/src/lib/fields.js), and the category picker's search is in [categorySearch.js](frontend/src/lib/categorySearch.js).
