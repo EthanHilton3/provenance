@@ -41,13 +41,16 @@ cp .env.example .env        # fill in the Supabase keys (never commit .env)
 cd backend && ../.venv/Scripts/python -m pytest -q                       # unit tests, no network
 PROVENANCE_LIVE=1 ../.venv/Scripts/python -m pytest tests/test_live_cloud.py   # real cloud project, throwaway users
 ../.venv/Scripts/python -m uvicorn app.main:app --reload                 # http://localhost:8000/docs
+../.venv/Scripts/python -m app.worker                                    # intake worker (needs OPENAI_API_KEY); --once drains and exits
 ```
 
 `tests/test_live_photos.py` runs the photo flow against a real Storage service. Against the local stack (no cloud needed), set `PROVENANCE_LIVE=1` and export `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` from `npx supabase status -o env` (`API_URL`, `ANON_KEY`, `SERVICE_ROLE_KEY`). Against the cloud project it needs the photos migration pushed first.
 
+`tests/test_live_intake.py` runs the intake queue and worker against the local stack only (same exports), with a fake model: two users, racing workers, a crashed worker's lease, retries and max attempts. `tests/test_live_ai.py` sends one real photo to Luna and one group photo to Sol (about $0.03); it also needs `PROVENANCE_LIVE_AI=1`.
+
 Known limit of signed URLs on the hosted project: its CDN caches a photo once a signed URL has been fetched, and can keep serving that same URL after the photo is deleted (observed for a few seconds up to the cache lifetime, which is up to an hour; local Supabase has no CDN). A URL nobody fetched before the delete stops working at once, and the database row and file are gone either way. `Cache-Control: max-age=0` on upload did not fix this reliably, so it is not used.
 
-API so far: `/api/health`, `/api/me`, `/api/categories`, `/api/categories/{id}/fields`, `/api/items` (list with keyset paging, get, create, patch with `version`, delete) and photos: `POST /api/items/{id}/photos` and `POST /api/photos` (multipart `file`: JPEG, PNG or HEIC up to 15 MB; stored as an upright, metadata-free JPEG of at most 2048 px in a private bucket, date taken kept in the row), `GET /api/items/{id}/photos` (signed URLs, valid 1 hour), `DELETE /api/photos/{id}`.
+API so far: `/api/health`, `/api/me`, `/api/categories`, `/api/categories/{id}/fields`, `/api/items` (list with keyset paging, get, create, patch with `version`, delete) and photos: `POST /api/items/{id}/photos` and `POST /api/photos` (multipart `file`: JPEG, PNG or HEIC up to 15 MB; stored as an upright, metadata-free JPEG of at most 2048 px in a private bucket, date taken kept in the row), `GET /api/items/{id}/photos` (signed URLs, valid 1 hour), `DELETE /api/photos/{id}`. Intake: `POST /api/intake/jobs` (`{"photo_ids": [...], "mode": "single" | "group"}`, one job per photo, 200 photos a day), `GET /api/intake/jobs` and `GET /api/intake/jobs/{id}` (status, and the proposed `card` once the worker has one).
 
 ### Frontend
 
