@@ -1,0 +1,474 @@
+{
+  "_about": [
+    "The built-in category tree: the one place to edit it. scripts/build_category_migration.py turns this file into",
+    "supabase/migrations/20261125000000_category_redesign.sql; tests/db/test_schema_extras.py checks the database against it.",
+    "Design: docs/CATEGORY_REDESIGN.md.",
+    "fields: the shared field library. A category's fields list names a library key (\"model\"), or a library key with",
+    "overrides ({\"key\": \"format\", \"options\": [...]}; only options and show_if may be overridden), or a field used by",
+    "that category alone ({\"key\", \"label\", \"type\", ...}). A key used by two or more categories must be in the library.",
+    "Field keys: key, label, type (text|number|boolean|choice), options (choice only), scope (\"product\": a fact about the",
+    "product, not your copy), show_if ({\"key\", \"equals\"}: show only when that field has that value).",
+    "renamed_from: the old built-in name of a row kept in place, so its items keep their link."
+  ],
+  "fields": {
+    "region": {"label": "Region", "type": "text", "scope": "product"},
+    "platform": {"label": "Platform", "type": "choice", "options": [
+      "NES", "Super Nintendo", "Nintendo 64", "GameCube", "Wii", "Wii U", "Switch", "Switch 2",
+      "Game Boy", "Game Boy Color", "Game Boy Advance", "Nintendo DS", "Nintendo 3DS",
+      "PlayStation", "PS2", "PS3", "PS4", "PS5", "PSP", "PS Vita",
+      "Xbox", "Xbox 360", "Xbox One", "Xbox Series X|S",
+      "Master System", "Genesis", "Sega CD", "Saturn", "Dreamcast", "Game Gear",
+      "Atari 2600", "Atari 7800", "Atari Jaguar",
+      "Neo Geo", "TurboGrafx-16", "PC", "Other"
+    ]},
+    "edition": {"label": "Edition", "type": "text", "scope": "product"},
+    "format": {"label": "Format", "type": "choice", "scope": "product"},
+    "publisher": {"label": "Publisher", "type": "text", "scope": "product"},
+    "completeness": {"label": "Completeness", "type": "choice",
+                     "options": ["Complete in box", "Complete no box", "Incomplete", "Loose item"]},
+    "model": {"label": "Model", "type": "text"},
+    "color": {"label": "Color", "type": "text"},
+    "material": {"label": "Material", "type": "text"},
+    "dimensions": {"label": "Dimensions", "type": "text"},
+    "size": {"label": "Size", "type": "text"},
+    "storage": {"label": "Storage", "type": "text"},
+    "piece_count": {"label": "Pieces", "type": "number"},
+    "scale": {"label": "Scale", "type": "text"},
+    "edition_number": {"label": "Edition number", "type": "number"},
+    "edition_size": {"label": "Edition size", "type": "number"},
+    "artist": {"label": "Artist", "type": "text"},
+    "age_range": {"label": "Ages", "type": "text"},
+    "players": {"label": "Players", "type": "text"},
+    "play_time": {"label": "Play time", "type": "text"},
+    "year": {"label": "Year", "type": "number"}
+  },
+  "categories": [
+    {
+      "name": "Video Games",
+      "description": "Video games and the hardware to play them: games, consoles, controllers and accessories. Not board or card games (Games & Puzzles) or game-themed figures (Toys › Figures).",
+      "fields": ["region"],
+      "children": [
+        {"name": "Games",
+         "description": "Physical video games: cartridges, discs, boxed PC games and collector's editions (Zelda: Tears of the Kingdom, Pokémon Red). Not consoles (Consoles) or strategy guides (Books).",
+         "fields": ["platform", "edition", "completeness"]},
+        {"name": "Consoles",
+         "description": "Game consoles and handhelds, one item per console (Switch OLED, Game Boy Pocket, PS2 Slim); the hardware variant goes in Model. Not controllers (Controllers) or cases and chargers (Accessories).",
+         "fields": ["model", "color", "edition", "storage", "completeness"]},
+        {"name": "Controllers",
+         "description": "Gamepads, joysticks and motion controllers (Joy-Con, DualSense, GameCube controller, Wii Remote). Not cases, chargers or other add-ons (Accessories).",
+         "fields": ["platform", "model", "color", "edition"]},
+        {"name": "Accessories",
+         "description": "Add-ons for game hardware: cases, chargers, docks, memory cards, cables, steering wheels (Switch carrying case, N64 Rumble Pak). Not controllers (Controllers) or general bags (Bags & Cases).",
+         "fields": ["platform"]}
+      ]
+    },
+    {
+      "name": "Movies & TV",
+      "description": "Movies and TV shows on physical media. Not soundtracks (Music › Albums), posters (Home Decor › Wall art & Posters) or merchandise, which goes by what it is (a figure is Toys › Figures).",
+      "fields": [{"key": "kind", "label": "Movie or TV", "type": "choice", "options": ["Movie", "TV", "Other"], "scope": "product"}],
+      "children": [
+        {"name": "Discs", "renamed_from": "Physical media",
+         "description": "Movies and TV on disc: 4K UHD, Blu-ray, DVD and HD DVD, steelbooks and box sets included (Spirited Away Blu-ray, The Office complete series). Not tapes (VHS & tapes) or video game discs (Video Games › Games).",
+         "fields": [
+           {"key": "format", "options": ["4K UHD", "Blu-ray", "DVD", "HD DVD", "Other"]},
+           "edition",
+           {"key": "packaging", "label": "Packaging", "type": "choice", "scope": "product",
+            "options": ["Standard case", "Steelbook", "Slipcover", "Box set", "Other"]},
+           {"key": "disc_count", "label": "Discs", "type": "number", "scope": "product"},
+           "region"
+         ]},
+        {"name": "VHS & tapes",
+         "description": "Movies and TV on tape: VHS, Betamax and ex-rental tapes (a Disney black diamond VHS). Not audio cassettes (Music › Albums) or discs (Discs).",
+         "fields": [
+           "edition",
+           {"key": "video_standard", "label": "Video standard", "type": "choice", "scope": "product", "options": ["NTSC", "PAL"]},
+           {"key": "ex_rental", "label": "Ex-rental", "type": "boolean"}
+         ]}
+      ]
+    },
+    {
+      "name": "Books",
+      "description": "Books of every kind: novels, nonfiction, cookbooks, art books, strategy guides. A book that fits no child stays here. Not sheet music or lesson books (Music › Sheet music & lesson books) or photo albums (Family photos & documents › Photos & albums).",
+      "fields": [
+        {"key": "author", "label": "Author", "type": "text"},
+        {"key": "isbn", "label": "ISBN", "type": "text", "scope": "product"},
+        "publisher",
+        {"key": "format", "options": ["Hardcover", "Paperback", "Mass market", "Other"]},
+        "edition",
+        {"key": "genre", "label": "Genre", "type": "text"}
+      ],
+      "children": [
+        {"name": "Manga", "renamed_from": "Manga & Comics",
+         "description": "Japanese comics and light novels in print, one item per volume (One Piece vol. 1, Spy x Family). Not Western comics (Comics & graphic novels).",
+         "fields": [{"key": "volume", "label": "Volume", "type": "number"}]},
+        {"name": "Comics & graphic novels",
+         "description": "Comic issues, trade paperbacks and graphic novels (Watchmen, Amazing Spider-Man #300, a Calvin and Hobbes collection). Not manga (Manga) or picture books (Children's books).",
+         "fields": [
+           {"key": "issue_or_volume", "label": "Issue or volume", "type": "text"},
+           {"key": "creators", "label": "Creators", "type": "text"}
+         ]},
+        {"name": "Children's books",
+         "description": "Picture books, board books and early readers (The Very Hungry Caterpillar, Dr. Seuss). Not young-adult novels (Books) or comics (Comics & graphic novels).",
+         "fields": ["age_range"]},
+        {"name": "Textbooks",
+         "description": "Books bought for a class, with the course and term (Database System Concepts for CS 452). Not general nonfiction (Books) or instrument lesson books (Music › Sheet music & lesson books).",
+         "fields": [
+           {"key": "course", "label": "Course", "type": "text"},
+           {"key": "term", "label": "Term", "type": "text"}
+         ]}
+      ]
+    },
+    {
+      "name": "Music",
+      "description": "Recorded music and making music: albums, instruments, their gear, and sheet music. Not band posters (Home Decor › Wall art & Posters), concert tickets (Memorabilia & Keepsakes › Tickets & programs) or headphones and speakers (Electronics › Audio).",
+      "fields": [],
+      "children": [
+        {"name": "Albums", "renamed_from": "Albums & Vinyl",
+         "description": "Recorded music on a physical format: vinyl records, CDs and cassettes (Abbey Road on vinyl, a Taylor Swift CD). Not concert films or music videos (Movies & TV › Discs).",
+         "fields": [
+           "artist",
+           {"key": "format", "options": ["Vinyl", "CD", "Cassette", "Other"]},
+           {"key": "record_size", "label": "Record size", "type": "choice", "options": ["12\"", "10\"", "7\""],
+            "show_if": {"key": "format", "equals": "Vinyl"}},
+           {"key": "speed", "label": "Speed (RPM)", "type": "choice", "options": ["33", "45", "78"],
+            "show_if": {"key": "format", "equals": "Vinyl"}},
+           {"key": "pressing", "label": "Pressing", "type": "text", "scope": "product",
+            "show_if": {"key": "format", "equals": "Vinyl"}},
+           {"key": "variant", "label": "Variant", "type": "text", "scope": "product",
+            "show_if": {"key": "format", "equals": "Vinyl"}}
+         ]},
+        {"name": "Instruments",
+         "description": "Musical instruments (trumpet, guitar, keyboard, ukulele). Not tuners, stands, amps or cases (Instrument gear & accessories) or toy instruments (Toys).",
+         "fields": [{"key": "type", "label": "Type", "type": "text"}, "model"]},
+        {"name": "Instrument gear & accessories",
+         "description": "Gear for playing an instrument: tuners, metronomes, stands, amps, pedals, straps, mouthpieces and instrument cases. Not the instrument itself (Instruments) or headphones and speakers (Electronics › Audio).",
+         "fields": [{"key": "for_instrument", "label": "For instrument", "type": "text"}, "model"]},
+        {"name": "Sheet music & lesson books",
+         "description": "Sheet music, method books and songbooks for an instrument, for lessons or for fun (an Essential Elements trumpet book, a Star Wars songbook for trumpet). Not textbooks for a class (Books › Textbooks) or albums (Albums).",
+         "fields": [
+           {"key": "instrument", "label": "Instrument", "type": "text"},
+           {"key": "purpose", "label": "Purpose", "type": "choice", "options": ["Lessons", "Songs for fun", "Ensemble or duets", "Other"]},
+           {"key": "level", "label": "Level", "type": "choice", "options": ["Beginner", "Intermediate", "Advanced"]}
+         ]}
+      ]
+    },
+    {
+      "name": "Games & Puzzles", "renamed_from": "Board Games & Puzzles",
+      "description": "Games played seated at a table, and puzzles: board games, card games, sealed trading card products, jigsaw puzzles and game accessories. Not video games (Video Games) or games played standing or outdoors like cornhole (Sports & outdoors › Lawn & yard games).",
+      "fields": ["publisher"],
+      "children": [
+        {"name": "Board games",
+         "description": "Board games and their expansions, one item per box (Catan, Ticket to Ride: Europe, Pandemic: On the Brink). Not games played with only cards (Card games) or jigsaw puzzles (Puzzles).",
+         "fields": [
+           "players", "play_time", "age_range", "edition",
+           {"key": "base_or_expansion", "label": "Base game or expansion", "type": "choice", "options": ["Base game", "Expansion"]},
+           {"key": "expansion_for", "label": "Expansion for", "type": "text",
+            "show_if": {"key": "base_or_expansion", "equals": "Expansion"}},
+           "completeness"
+         ]},
+        {"name": "Card games",
+         "description": "Games played with their own deck, and standard playing cards (Uno, Exploding Kittens, Phase 10, a deck of Bicycle cards). Not collectible card products (Trading card games).",
+         "fields": ["players", "play_time", "age_range", "edition", "completeness"]},
+        {"name": "Trading card games",
+         "description": "Sealed trading card game product: booster packs and boxes, pre-constructed decks, tins and bundles (a Pokémon booster box, a Magic: The Gathering starter deck). Not single cards, which are not tracked, or sleeves, playmats and deck boxes (Game accessories).",
+         "fields": [
+           {"key": "game", "label": "Game", "type": "text"},
+           {"key": "product_type", "label": "Product type", "type": "choice",
+            "options": ["Booster pack", "Booster box", "Pre-constructed deck", "Tin or bundle", "Other"]},
+           {"key": "set_name", "label": "Set name", "type": "text"},
+           {"key": "language", "label": "Language", "type": "text"}
+         ]},
+        {"name": "Puzzles",
+         "description": "Jigsaw puzzles and 3D puzzles (a 1000-piece Ravensburger, a Wrebbit 3D castle). Not Rubik's cubes and other twisty toys (Toys › Classic toys).",
+         "fields": ["piece_count", {"key": "finished_size", "label": "Finished size", "type": "text"}, "completeness"]},
+        {"name": "Game accessories",
+         "description": "Things you play table games with: dice, playmats, card sleeves, deck boxes, storage tins and card shufflers. Not video game add-ons (Video Games › Accessories).",
+         "fields": [{"key": "for_game", "label": "For game", "type": "text"}]}
+      ]
+    },
+    {
+      "name": "Toys", "renamed_from": "Toys & Building Sets",
+      "description": "Toys of every kind: building sets, figures, plush, vehicles, dolls, battle, electronic, classic and creative toys. Not ride-ons, kites or water guns (Sports & outdoors › Outdoor play), board games (Games & Puzzles) or model kits you build and paint (Craft & hobby › Model kits & miniatures).",
+      "fields": [],
+      "children": [
+        {"name": "Building sets",
+         "description": "Construction sets with pieces and a set number (LEGO, Mega Bloks, K'NEX, Lincoln Logs). Not plastic model kits (Craft & hobby › Model kits & miniatures).",
+         "fields": [{"key": "set_number", "label": "Set number", "type": "text", "scope": "product"}, "piece_count", "completeness"]},
+        {"name": "Figures",
+         "description": "Action figures, collectible and vinyl figures, statues and amiibo (Funko Pop, Nendoroid, Star Wars Black Series). Not dolls (Dolls & playsets) or decorative figurines like porcelain (Home Decor › Decorative objects).",
+         "fields": ["scale", "edition_number", "edition_size", "completeness"]},
+        {"name": "Plush",
+         "description": "Stuffed animals and plush toys (Squishmallows, Build-A-Bear, Pokémon plush). Not throw pillows (Home Decor › Rugs, curtains & cushions).",
+         "fields": ["size"]},
+        {"name": "Vehicles",
+         "description": "Toy cars, trains, planes and remote-control vehicles (Hot Wheels, Matchbox, a Thomas train set, an RC car). Not built plastic models (Craft & hobby › Model kits & miniatures) or ride-on toys (Sports & outdoors › Outdoor play).",
+         "fields": ["scale"]},
+        {"name": "Dolls & playsets",
+         "description": "Dolls and the worlds they play in: fashion dolls, dollhouses, playsets and play shops (Barbie, American Girl, a Little People playset, a play storefront). Not action figures (Figures).",
+         "fields": ["completeness"]},
+        {"name": "Battle toys",
+         "description": "Spinning-top and battle toys and toy weapons (Beyblade, Bakugan, Nerf, play swords). Not outdoor ride-ons (Sports & outdoors › Outdoor play), collectible figures (Figures) or display replicas (Memorabilia & Keepsakes › Props & replicas).",
+         "fields": []},
+        {"name": "Electronic toys",
+         "description": "Battery-powered and electronic toys (Tamagotchi, Furby, Tiger handhelds, Teddy Ruxpin, View-Master). Not game consoles (Video Games › Consoles) or remote-control cars (Vehicles).",
+         "fields": []},
+        {"name": "Classic toys",
+         "description": "Simple timeless toys (yo-yo, Slinky, Rubik's cube, Magic 8-Ball, jacks). Not battle tops like Beyblade (Battle toys) or jigsaw puzzles (Games & Puzzles › Puzzles).",
+         "fields": []},
+        {"name": "Creative toys",
+         "description": "Toys for making and drawing (Play-Doh, Lite-Brite, Etch A Sketch, Spirograph). Not real art supplies (Craft & hobby › Art supplies) or building sets (Building sets).",
+         "fields": []}
+      ]
+    },
+    {
+      "name": "Memorabilia & Keepsakes", "renamed_from": "Collectibles & Memorabilia",
+      "description": "Things kept for what they remember, with no other function: signed photos, autographs, pins, tickets, props and replicas, souvenirs. Not things with a use, which go by what they are (a signed poster is Home Decor › Wall art & Posters, a souvenir mug is Kitchen › Drinkware), or heirlooms, which also go by what they are.",
+      "fields": ["edition_number", "edition_size"],
+      "children": [
+        {"name": "Pins, buttons & patches",
+         "description": "Enamel pins, buttons, badges and embroidered patches (Disney trading pins, scout patches). Not jewelry (Clothing & Linens › Jewelry & watches).",
+         "fields": []},
+        {"name": "Tickets & programs",
+         "description": "Ticket stubs, event programs, playbills, passes and wristbands (an Eras Tour ticket, a Broadway playbill). Not posters (Home Decor › Wall art & Posters).",
+         "fields": [
+           {"key": "event", "label": "Event", "type": "text"},
+           {"key": "event_date", "label": "Event date", "type": "text"}
+         ]},
+        {"name": "Props & replicas",
+         "description": "Display replicas and costume props (an anime katana, the Master Sword, a lightsaber, a replica helmet). Not toy weapons for play (Toys › Battle toys) or figures (Toys › Figures).",
+         "fields": []}
+      ]
+    },
+    {
+      "name": "Coins & Currency",
+      "description": "Coins, paper money, tokens, medals and stamps, one item per piece. Not a coin album or binder: that is a collection of coin items.",
+      "fields": [
+        {"key": "country", "label": "Country", "type": "text"},
+        "year",
+        {"key": "denomination", "label": "Denomination", "type": "text"},
+        {"key": "grade", "label": "Grade", "type": "text"}
+      ],
+      "children": [
+        {"name": "Coins",
+         "description": "Circulating, commemorative and bullion coins (a 1964 Kennedy half dollar, a state quarter, a silver eagle). Not tokens or medals (Tokens & medals).",
+         "fields": [{"key": "mint_mark", "label": "Mint mark", "type": "text"}, {"key": "metal", "label": "Metal", "type": "text"}]},
+        {"name": "Paper money",
+         "description": "Banknotes, US and foreign (a $2 bill, a star note, an old peso). Not stamps (Stamps).",
+         "fields": [{"key": "serial_number", "label": "Serial number", "type": "text"}]},
+        {"name": "Tokens & medals",
+         "description": "Tokens, commemorative medals and medallions (arcade tokens, transit tokens, a pressed penny, a challenge coin). Not legal-tender coins (Coins).",
+         "fields": [{"key": "issuer", "label": "Issuer", "type": "text"}]},
+        {"name": "Stamps",
+         "description": "Postage stamps, sheets and first-day covers. Not letters or postcards kept for what they say (Family photos & documents › Documents & letters).",
+         "fields": [{"key": "mint_or_used", "label": "Mint or used", "type": "choice", "options": ["Mint", "Used"]}]}
+      ]
+    },
+    {
+      "name": "Home Decor",
+      "description": "Things that decorate a room: wall art, frames, candles, decorative objects, seasonal decorations, rugs, curtains and cushions. Not furniture (Furniture) or bedding and blankets (Clothing & Linens).",
+      "fields": ["dimensions"],
+      "children": [
+        {"name": "Wall art & Posters", "renamed_from": "Wall art & Frames",
+         "description": "Things that hang on a wall to be looked at: posters, prints, paintings, canvases and tapestries, signed or numbered ones included (a Studio Ghibli poster, a signed concert poster). Not empty frames (Frames & photo displays) or a quilt hung on the wall (Clothing & Linens › Blankets, throws & quilts).",
+         "fields": ["artist", {"key": "medium", "label": "Medium", "type": "text"}, "edition_number", "edition_size"]},
+        {"name": "Frames & photo displays",
+         "description": "Picture frames, digital frames, shadow boxes and display cases. Not the art or photo inside, which is its own item (Wall art & Posters, Family photos & documents › Photos & albums).",
+         "fields": ["material"]},
+        {"name": "Candles & Fragrance",
+         "description": "Candles, wax melts, diffusers and room sprays (a Bath & Body Works 3-wick). Not candle holders (Decorative objects).",
+         "fields": [{"key": "scent", "label": "Scent", "type": "text"}, "size"]},
+        {"name": "Decorative objects",
+         "description": "Ornamental pieces for a shelf or table: vases, figurines, lamps, clocks, bookends, snow globes. Not collectible figures (Toys › Figures) or holiday-only decorations (Seasonal).",
+         "fields": ["material"]},
+        {"name": "Seasonal",
+         "description": "Decorations for a holiday or season, scarecrows included (Christmas ornaments, Halloween decor, a nativity set). Decorations only: not holiday mugs or dishes (Kitchen) or holiday sweaters (Clothing & Linens › Clothing).",
+         "fields": [{"key": "season", "label": "Holiday / season", "type": "text"}]},
+        {"name": "Rugs, curtains & cushions",
+         "description": "Rugs, mats, curtains and throw pillows. Not blankets and throws (Clothing & Linens › Blankets, throws & quilts) or bed pillows and sheets (Clothing & Linens › Bedding).",
+         "fields": ["material", "color"]}
+      ]
+    },
+    {
+      "name": "Furniture",
+      "description": "Furniture, one item per piece: seating, tables and desks, storage and shelving, bedroom furniture. Not lamps and decorative pieces (Home Decor › Decorative objects) or bedding (Clothing & Linens › Bedding).",
+      "fields": ["material", "color", "dimensions"],
+      "children": [
+        {"name": "Seating",
+         "description": "Chairs, sofas, stools, benches, recliners and bean bags (a gaming chair, a rocking chair). Not cushions (Home Decor › Rugs, curtains & cushions).",
+         "fields": []},
+        {"name": "Tables & desks",
+         "description": "Dining, coffee, side and folding tables, and desks. Not shelving (Storage & shelving).",
+         "fields": []},
+        {"name": "Storage & shelving",
+         "description": "Bookcases, shelves, cabinets, TV stands and cube organizers. Not dressers and nightstands (Bedroom) or small boxes and bins (Kitchen › Containers & storage, Tools › Tool storage & accessories).",
+         "fields": []},
+        {"name": "Bedroom",
+         "description": "Beds, bed frames, mattresses, dressers, nightstands and wardrobes. Not bedding (Clothing & Linens › Bedding).",
+         "fields": []}
+      ]
+    },
+    {
+      "name": "Kitchen",
+      "description": "Things for cooking, eating, drinking and storing food: appliances, cookware, utensils, drinkware, dishes, snack ware and containers. Not dish towels or table linens (Clothing & Linens).",
+      "fields": ["material"],
+      "children": [
+        {"name": "Appliances",
+         "description": "Kitchen appliances, small and large (a KitchenAid mixer, an Instant Pot, a toaster, a coffee maker, a popcorn machine). Not TVs or speakers (Electronics).",
+         "fields": ["model", "color"]},
+        {"name": "Cookware & bakeware",
+         "description": "Pots, pans, baking sheets, cake pans, casserole dishes and mixing bowls. Not serving bowls and plates (Dishes & serveware).",
+         "fields": []},
+        {"name": "Utensils & cutlery",
+         "description": "Silverware, knives, spatulas, whisks, measuring cups and gadgets (a knife block set, a garlic press). Not workshop tools (Tools › Hand tools).",
+         "fields": ["piece_count"]},
+        {"name": "Drinkware", "renamed_from": "Drinkware & Dishes",
+         "description": "Mugs, cups, glasses, tumblers, water bottles and pitchers, souvenir and themed cups included (a Disney mug, a movie-theater collector cup). Not popcorn buckets (Popcorn & snack ware) or plates and bowls (Dishes & serveware).",
+         "fields": ["piece_count"]},
+        {"name": "Dishes & serveware",
+         "description": "Plates, bowls, platters, serving bowls, gravy boats and cake stands. Not mixing bowls (Cookware & bakeware) or popcorn bowls (Popcorn & snack ware).",
+         "fields": ["piece_count"]},
+        {"name": "Popcorn & snack ware",
+         "description": "Popcorn bowls, popcorn tins, movie-theater popcorn buckets, candy dishes and chip-and-dip sets. Not other tins like a cookie tin (Containers & storage) or a popcorn machine (Appliances).",
+         "fields": []},
+        {"name": "Containers & storage",
+         "description": "Lidded food storage, canisters, jars, bread bins, spice and fruit racks, and tins other than popcorn tins (a cookie tin). Not popcorn tins (Popcorn & snack ware).",
+         "fields": []}
+      ]
+    },
+    {
+      "name": "Bags & Cases",
+      "description": "General bags and luggage: backpacks, purses, handbags, wallets, suitcases, duffels and tote bags. Not a case made for one kind of thing, which stays with it (a Switch case is Video Games › Accessories, a trumpet case is Music › Instrument gear & accessories, a camera bag is Electronics › Cameras & photography).",
+      "fields": ["color", "material"],
+      "children": []
+    },
+    {
+      "name": "Clothing & Linens", "renamed_from": "Clothing & Textiles",
+      "description": "Things you wear and household textiles: clothing, shoes, jewelry and watches, bedding, blankets, towels and table linens. Not rugs, curtains or cushions (Home Decor › Rugs, curtains & cushions).",
+      "fields": ["size", "color", "material"],
+      "children": [
+        {"name": "Clothing",
+         "description": "Clothes, hats, scarves, gloves, costumes and jerseys (a signed jersey goes here, with Signed by filled in). Not shoes (Shoes) or jewelry (Jewelry & watches).",
+         "fields": []},
+        {"name": "Shoes",
+         "description": "Shoes, boots, sneakers, sandals and slippers. Not socks (Clothing).",
+         "fields": []},
+        {"name": "Jewelry & watches",
+         "description": "Rings, necklaces, bracelets, earrings and watches. Not pins and patches (Memorabilia & Keepsakes › Pins, buttons & patches) or smartwatches (Electronics › Phones & wearables).",
+         "fields": []},
+        {"name": "Bedding",
+         "description": "The layers made for a bed: sheets, pillowcases, comforters, duvets and covers, mattress pads and bed pillows. Not blankets, throws or quilts (Blankets, throws & quilts) or the bed itself (Furniture › Bedroom).",
+         "fields": []},
+        {"name": "Blankets, throws & quilts",
+         "description": "Anything blanket-like, wherever it is used: quilts, throws, fleece blankets, afghans, picnic blankets, a quilt hung on the wall (Grandma's quilt). Not sheets or comforters (Bedding).",
+         "fields": []},
+        {"name": "Towels & washcloths",
+         "description": "Bath, hand, beach and kitchen towels and washcloths: anything that dries or cleans you or a dish. Not tablecloths or napkins (Table linens).",
+         "fields": []},
+        {"name": "Table linens",
+         "description": "Tablecloths, cloth napkins, placemats and table runners. Not dish towels (Towels & washcloths).",
+         "fields": []}
+      ]
+    },
+    {
+      "name": "Tools",
+      "description": "Tools for building, fixing and yard work, one item per tool; a tool set is an item that contains its tools. Not kitchen utensils (Kitchen › Utensils & cutlery) or craft supplies (Craft & hobby).",
+      "fields": [],
+      "children": [
+        {"name": "Hand tools",
+         "description": "Tools without a motor: hammers, screwdrivers, wrenches, pliers, saws, tape measures and garden hand tools. Not power tools (Power tools).",
+         "fields": ["model"]},
+        {"name": "Power tools",
+         "description": "Corded and cordless power tools (a DeWalt drill, a circular saw, a leaf blower, a sander). Not kitchen appliances (Kitchen › Appliances).",
+         "fields": ["model", {"key": "power", "label": "Power", "type": "choice", "options": ["Corded", "Cordless", "Other"]}]},
+        {"name": "Tool storage & accessories",
+         "description": "Toolboxes, tool bags and chests, pegboards, drill bits, blades, and batteries and chargers for tools. Not general bags (Bags & Cases).",
+         "fields": []}
+      ]
+    },
+    {
+      "name": "Electronics",
+      "description": "Electronic devices and their accessories: computers, phones, audio, cameras, TVs, cables and smart home. Not game consoles and controllers (Video Games), electronic toys (Toys › Electronic toys) or kitchen appliances (Kitchen › Appliances).",
+      "fields": ["model"],
+      "children": [
+        {"name": "Computers & tablets",
+         "description": "Laptops, desktops, tablets, e-readers, monitors, keyboards and mice (a MacBook Air, an iPad, a Kindle). Not phones (Phones & wearables).",
+         "fields": ["storage"]},
+        {"name": "Phones & wearables",
+         "description": "Phones, smartwatches and fitness trackers (an iPhone, an Apple Watch, a Fitbit). Not regular watches (Clothing & Linens › Jewelry & watches).",
+         "fields": ["storage"]},
+        {"name": "Audio",
+         "description": "Headphones, earbuds, speakers, radios, turntables, CD and MP3 players, iPods and stereos. Not albums (Music › Albums) or instrument amps (Music › Instrument gear & accessories).",
+         "fields": ["completeness"]},
+        {"name": "Cameras & photography",
+         "description": "Cameras, lenses, tripods, flashes and camera bags, film cameras included (a Polaroid, a Canon DSLR, a GoPro). Not the photos themselves (Family photos & documents › Photos & albums) or picture frames (Home Decor › Frames & photo displays).",
+         "fields": ["completeness"]},
+        {"name": "TVs & home theater",
+         "description": "TVs, projectors, soundbars, receivers, streaming boxes and disc players (a Roku, a Blu-ray player). Not game consoles (Video Games › Consoles).",
+         "fields": []},
+        {"name": "Cables, chargers & accessories",
+         "description": "Cables, chargers, adapters, power banks, hubs, surge protectors and memory cards. Not game console add-ons (Video Games › Accessories) or tool batteries (Tools › Tool storage & accessories).",
+         "fields": []},
+        {"name": "Smart home",
+         "description": "Smart speakers and displays, bulbs, plugs, cameras, doorbells and thermostats (an Echo Dot, a Ring doorbell). Not ordinary lamps (Home Decor › Decorative objects).",
+         "fields": []}
+      ]
+    },
+    {
+      "name": "Sports & outdoors",
+      "description": "Sports gear and things used outdoors: sports equipment, camping and hiking, fishing, lawn and yard games, outdoor play. Not sportswear (Clothing & Linens › Clothing) or games played seated at a table (Games & Puzzles).",
+      "fields": [],
+      "children": [
+        {"name": "Sports equipment",
+         "description": "Balls, bats, gloves, rackets, clubs, weights, yoga mats, skates, bikes and helmets (a signed baseball goes here, with Signed by filled in). Not jerseys (Clothing & Linens › Clothing) or yard games (Lawn & yard games).",
+         "fields": [{"key": "sport", "label": "Sport", "type": "text"}]},
+        {"name": "Camping & hiking",
+         "description": "Tents, sleeping bags, backpacking gear, camp stoves, lanterns, coolers and trekking poles. Not everyday backpacks (Bags & Cases).",
+         "fields": []},
+        {"name": "Fishing",
+         "description": "Rods, reels, tackle boxes, lures and nets. Not coolers and camp gear (Camping & hiking).",
+         "fields": []},
+        {"name": "Lawn & yard games",
+         "description": "Games played standing or outdoors: cornhole, Kan Jam, Spikeball, ladder toss, croquet, bocce. Not games played seated at a table (Games & Puzzles) or kids' outdoor toys (Outdoor play).",
+         "fields": []},
+        {"name": "Outdoor play",
+         "description": "Kids' outdoor toys: ride-ons, kites, water guns, bubbles, sidewalk chalk and sandbox toys. Not lawn games (Lawn & yard games) or bikes (Sports equipment).",
+         "fields": []}
+      ]
+    },
+    {
+      "name": "Craft & hobby",
+      "description": "Supplies and kits for making things: sewing, yarn and fabric, art supplies, model kits and miniatures. Not finished art (Home Decor › Wall art & Posters) or kids' creative toys like Play-Doh (Toys › Creative toys).",
+      "fields": [],
+      "children": [
+        {"name": "Sewing, yarn & fabric",
+         "description": "Sewing machines, yarn, fabric, thread, knitting needles, crochet hooks and patterns. Not finished quilts (Clothing & Linens › Blankets, throws & quilts).",
+         "fields": []},
+        {"name": "Art supplies",
+         "description": "Paints, brushes, markers, pencils, sketchbooks, blank canvases, easels and cutting machines like a Cricut. Not finished paintings (Home Decor › Wall art & Posters).",
+         "fields": []},
+        {"name": "Model kits & miniatures",
+         "description": "Plastic and wood model kits and tabletop miniatures, built or not (a Gundam kit, a Revell car model, Warhammer miniatures). Not LEGO and other building sets (Toys › Building sets).",
+         "fields": ["scale", {"key": "built", "label": "Built", "type": "boolean"}, "completeness"]}
+      ]
+    },
+    {
+      "name": "Family photos & documents",
+      "description": "Family photos and papers kept for their memories: prints, albums, letters, cards and certificates. Not framed art (Home Decor › Wall art & Posters). Heirlooms are not a category: Grandma's quilt is a quilt (Clothing & Linens › Blankets, throws & quilts), with its giver and the Inherited occasion.",
+      "fields": [],
+      "children": [
+        {"name": "Photos & albums",
+         "description": "Printed photos, photo albums, scrapbooks, slides and negatives (Grandma's wedding album). Not empty frames (Home Decor › Frames & photo displays).",
+         "fields": ["year", {"key": "people", "label": "People", "type": "text"}]},
+        {"name": "Documents & letters",
+         "description": "Letters, cards, certificates, diaries, handwritten recipes, report cards and family records. Not books (Books) or stamps (Coins & Currency › Stamps).",
+         "fields": ["year", {"key": "written_by", "label": "Written by", "type": "text"}]}
+      ]
+    },
+    {
+      "name": "Other",
+      "description": "The escape hatch, for anything that fits no other category. Check the others first: most things have a home.",
+      "fields": [],
+      "children": []
+    }
+  ]
+}

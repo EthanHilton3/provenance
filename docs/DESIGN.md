@@ -95,6 +95,7 @@ erDiagram
         uuid id PK
         uuid parent_id FK
         string name
+        string description "what belongs here; searched by the picker"
         json field_template
     }
     WORKS {
@@ -123,6 +124,9 @@ erDiagram
         uuid parent_item_id FK "containment"
         uuid occasion_id FK
         uuid given_by FK
+        string franchise "every item; indexed"
+        string brand "every item; indexed"
+        string signed_by
         json attributes
         date acquired_on
         int version "optimistic locking"
@@ -169,9 +173,12 @@ erDiagram
 
 </details>
 
+ERD note: the picture above predates the category redesign (Nov 25); the text version is current. It adds `categories.description` and the `items` columns `franchise`, `brand` and `signed_by`.
+
 An item points to at most one release, and a release lists the works it contains, so a box set like the Lord of the Rings trilogy is one release with three works. Unique things (the scarecrow, a family photo) have no release and live on their category's fields alone.
 
-- **Categories** are a tree (`parent_id`) whose `field_template` lists the fields for that kind of thing; children inherit them. Brands and platforms are attributes, not categories, so "all my controllers" and "all my Nintendo things" are both one query.
+- **Categories** are a tree (`parent_id`) sorted by one axis, what the thing physically is: 19 built-in top-level categories and 79 children ([CATEGORY_REDESIGN.md](CATEGORY_REDESIGN.md)). Each has a `description` written like a docstring (what it holds, examples, and "not for" pointers to the right category), which the picker searches and the intake prompt will read. A `field_template` lists the fields for that kind of thing and children inherit them; a field may be tagged `"scope": "product"` (a fact about the release, not my copy) or carry `"show_if": {"key", "equals"}` (Albums: record size only when the format is Vinyl). The tree is defined once in `supabase/category_tree.json`, with shared fields such as `completeness` defined once and included by key, and `scripts/build_category_migration.py` generates the migration from it.
+- **Franchise, brand and signed-by** are columns on `items`, not category fields: every item can have them and they are searched across categories, with indexes on `(owner_id, franchise)` and `(owner_id, brand)`. Platform stays a category field (Video Games). So "all my controllers" and "all my Nintendo things" are each still one query.
 - **Containment** (`parent_item_id`), **category** and **collections** are three different relationships: what it's physically with, what it is, and how I group it. Collections are many-to-many, like playlists.
 - **Sets** are the world's checklists (every mainline Zelda game, every piece of a 230-piece tool kit); they power "what am I missing?".
 - Two ways to browse the same items: *what it is* (the category tree) and *how I got it* (**occasions**: Christmas 2025, Birthday 2022, Yard sale 11/13/24, Black Friday '23, our wedding). An occasion holds its date once and every item from it inherits it; items with no occasion keep their own `acquired_on`. The two combine: "kitchen things from the wedding".
@@ -316,7 +323,7 @@ The plan is 37.5 hours over 19 working days, plus about 3 hours already spent on
 
 - [x] **S6: Mon Nov 23** (2 h): photo upload: keep the date taken, strip GPS and other metadata, resize, private bucket, signed URLs
 - [x] **S7: Tue Nov 24** (2.5 h): Vue screens: items grouped by category, item detail, add an item by hand
-- [ ] **Category review, before S8:** go through the category tree and each category's fields (add, rename, merge, move; fields to add or drop), now that they show in the app; apply the changes as a new migration, not an edit to the seed
+- [x] **Category review, before S8:** go through the category tree and each category's fields (add, rename, merge, move; fields to add or drop), now that they show in the app; apply the changes as a new migration, not an edit to the seed
 - [ ] **S8: Wed Nov 25** (1.5 h): category fields form; **milestone: core demo** (add, browse, edit, photos)
 - [ ] **S9: Sat Nov 28** (2.5 h): `intake_jobs` queue and worker (SKIP LOCKED); Luna prompt and schema from the feasibility test
 

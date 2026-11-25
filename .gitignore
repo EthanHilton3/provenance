@@ -13,3 +13,6 @@ dist/
 # Personal photos
 photos/
 .pytest_cache/
+
+# Data exports (real data; never commit)
+exports/

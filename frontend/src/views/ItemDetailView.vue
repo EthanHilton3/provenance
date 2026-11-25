@@ -113,7 +113,7 @@ import PhotoPicker from '../components/PhotoPicker.vue'
 import UploadList from '../components/UploadList.vue'
 import { ConflictError } from '../lib/api'
 import { api } from '../lib/backend'
-import { categoryFields, categoryPath, loadCategories } from '../lib/categories'
+import { categoryFields, categoryPath, cleanDraft, loadCategories } from '../lib/categories'
 import { buildPatch, display, draftFrom } from '../lib/item'
 import { forgetCover, setCover } from '../lib/photos'
 import { useUploads } from '../lib/uploads'
@@ -159,6 +159,7 @@ const basics = computed(() => {
   const it = item.value
   if (!it) return []
   const rows = [
+    ['Franchise / series', 'franchise'], ['Brand / maker', 'brand'], ['Signed by', 'signed_by'],
     ['Condition', 'condition_grade'], ['Sealed', 'sealed'], ['Acquired', 'acquired_on'], ['Where from', 'source'], ['Notes', 'notes'],
   ]
   return rows
@@ -198,7 +199,7 @@ function cancelEdit() {
 /** Saves the draft. With `onto` (the current row after a 409) only your changed fields go, on their version. */
 async function save(onto) {
   saveError.value = ''
-  const patch = buildPatch(base.value, draft.value, onto || base.value)
+  const patch = buildPatch(base.value, await cleanDraft(draft.value), onto || base.value)
   if (!patch) {
     if (onto) item.value = onto
     editing.value = false

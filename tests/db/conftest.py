@@ -3,16 +3,26 @@
 Users are impersonated the way PostgREST does it: `set local role authenticated` plus the JWT claims in
 `request.jwt.claims`, which is what auth.uid() reads. So these tests exercise the real RLS policies.
 """
+import importlib.util
 import json
 import os
 import uuid
 from contextlib import contextmanager
+from pathlib import Path
 
 import psycopg
 import pytest
 
 # Local Supabase's documented default; override with PROVENANCE_DB_URL. Never point this at production.
 DB_URL = os.environ.get('PROVENANCE_DB_URL', 'postgresql://postgres:postgres@127.0.0.1:54322/postgres')
+
+REPO = Path(__file__).resolve().parents[2]
+# The category tree's source file and generator (scripts/build_category_migration.py), for the tree tests.
+_spec = importlib.util.spec_from_file_location('build_category_migration', REPO / 'scripts' / 'build_category_migration.py')
+_builder = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_builder)
+load_tree, build_sql, MIGRATION = _builder.load_tree, _builder.build_sql, _builder.MIGRATION
+SEED_MIGRATION = REPO / 'supabase' / 'migrations' / '20261117000100_seed_categories.sql'
 
 
 def connect(autocommit: bool = False) -> psycopg.Connection:

@@ -52,7 +52,37 @@ test('a number typed as text matches the saved number', () => {
 test('createBody drops blanks', () => {
   const d = { ...emptyDraft('c1'), name: 'Lamp', attributes: { brand: '', model: 'X1' } }
   assert.deepEqual(createBody(d), {
-    name: 'Lamp', category_id: 'c1', condition_grade: null, sealed: false, acquired_on: null, source: null, notes: null,
-    attributes: { model: 'X1' },
+    name: 'Lamp', category_id: 'c1', franchise: null, brand: null, signed_by: null, condition_grade: null, sealed: false,
+    acquired_on: null, source: null, notes: null, attributes: { model: 'X1' },
   })
+})
+
+// Franchise, brand and signed-by are item columns, edited like name or notes.
+const signed = { ...loaded, franchise: 'Studio Ghibli', brand: null, signed_by: 'Hayao Miyazaki' }
+
+test('the new columns are part of the draft and the create body, blanks as null', () => {
+  const d = { ...emptyDraft('c1'), name: 'Poster', franchise: ' Zelda ', brand: '  ', signed_by: 'Eiji Aonuma' }
+  const body = createBody(d)
+  assert.equal(body.franchise, 'Zelda')
+  assert.equal(body.brand, null)
+  assert.equal(body.signed_by, 'Eiji Aonuma')
+  const draft = draftFrom(signed)
+  assert.equal(draft.franchise, 'Studio Ghibli')
+  assert.equal(draft.brand, '') // null becomes an empty input
+})
+
+test('editing a new column sends only that column; emptying it sends null', () => {
+  assert.equal(buildPatch(signed, draftFrom(signed)), null)
+  assert.deepEqual(buildPatch(signed, { ...draftFrom(signed), brand: 'Nintendo' }), { brand: 'Nintendo', version: 3 })
+  assert.deepEqual(buildPatch(signed, { ...draftFrom(signed), signed_by: ' ' }), { signed_by: null, version: 3 })
+})
+
+test('after a 409, their change to a new column survives saving on top', () => {
+  const draft = { ...draftFrom(signed), brand: 'Mine' }
+  const current = { ...signed, version: 4, franchise: 'Ghibli Museum' }
+  assert.deepEqual(buildPatch(signed, draft, current), { brand: 'Mine', version: 4 })
+  assert.deepEqual(differences(signed, current), [
+    { key: 'franchise', label: 'Franchise / series', from: 'Studio Ghibli', to: 'Ghibli Museum' },
+  ])
+  assert.deepEqual(differences(signed, draft).map((d) => d.key), ['brand'])
 })

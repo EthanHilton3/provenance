@@ -1,22 +1,25 @@
 <!--
   Renders and edits one category's fields (item.attributes). This is the single place that knows about field
-  types, so S8's full category-fields form replaces this file and nothing else.
+  types.
 
   Contract (keep it when swapping):
     props:  categoryId  the item's category; the fields (inherited ones included) are loaded from the API
             modelValue  the attributes object, { key: value }
             editable    false = read-only rows, true = inputs
     emits:  update:modelValue with a new attributes object (blank values are left as '' and removed on save)
+            fields      the category's template fields once loaded
 
-  S7 handles the four template types (text, number, boolean, choice) with plain inputs. Values whose key is not in
-  the category's template (an old category's fields, or anything intake adds later) are shown, never dropped.
+  Handles the four template types (text, number, boolean, choice) with plain inputs. A field with show_if appears
+  only while its condition holds (lib/fields.js); while hidden it keeps its value, and the views drop it on save
+  with cleanForSave(). Values whose key is not in the category's template (an old category's fields, or anything
+  intake adds later) are shown as other details, never dropped.
 -->
 <template>
   <div class="cf">
     <p v-if="error" class="notice notice-error small">Could not load this category's fields. {{ error }}</p>
 
     <template v-if="editable">
-      <template v-for="f in fields" :key="f.key">
+      <template v-for="f in shown" :key="f.key">
         <label v-if="f.type === 'boolean'" class="check">
           <input type="checkbox" :checked="modelValue[f.key] === true" @change="set(f.key, $event.target.checked)" />
           <span>{{ f.label }}</span>
@@ -53,6 +56,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { categoryFields } from '../lib/categories'
+import { visibleFields } from '../lib/fields'
 
 const props = defineProps({
   categoryId: { type: String, default: '' },
@@ -79,6 +83,8 @@ watch(() => props.categoryId, async (id) => {
 }, { immediate: true })
 
 const known = computed(() => new Set(fields.value.map((f) => f.key)))
+// Hidden conditional fields are known (not extras) but not shown.
+const shown = computed(() => visibleFields(fields.value, props.modelValue))
 const extras = computed(() => Object.entries(props.modelValue).filter(([k, v]) => !known.value.has(k) && v !== '' && v != null))
 
 // A saved value that is no longer one of the options still shows up in the list, so it isn't silently lost.
@@ -102,7 +108,7 @@ function show(f, v) {
 }
 const readRows = computed(() => {
   const rows = []
-  for (const f of fields.value) {
+  for (const f of shown.value) {
     const v = props.modelValue[f.key]
     if (v === undefined || v === null || v === '') continue
     rows.push({ key: f.key, label: f.label, value: show(f, v) })
