@@ -1,7 +1,7 @@
 // Run with `npm test` (Node's built-in test runner; no extra dependencies).
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { ApiError, ConflictError, createApi, messageOf } from './api.js'
+import { ApiError, ConflictError, createApi, fieldErrorsOf, messageOf } from './api.js'
 
 function fakeFetch(status, body) {
   const calls = []
@@ -150,4 +150,28 @@ test('a refused upload rejects with the server message', async () => {
   const err = await api.uploadPhoto('i1', new File([], 'x.gif'), () => {}).catch((e) => e)
   assert.equal(err.status, 415)
   assert.equal(err.message, 'Not a supported image')
+})
+
+test('fieldErrorsOf maps validation errors to the field they name', () => {
+  const body = { detail: [
+    { loc: ['body', 'name'], type: 'string_too_short', msg: 'String should have at least 1 character' },
+    { loc: ['body', 'attributes', 'piece_count', 'constrained-str'], type: 'string_type', msg: 'Input should be a valid string' },
+    { loc: ['body', 'attributes', 'piece_count', 'int'], msg: 'Input should be a valid integer' },
+    { loc: ['body'], msg: 'Value error, nothing to update' },
+  ] }
+  assert.deepEqual(fieldErrorsOf(body), {
+    name: 'String should have at least 1 character',
+    'attributes.piece_count': 'Use text, a number or yes/no here.',
+  })
+  assert.deepEqual(fieldErrorsOf({ detail: 'No such item' }), {})
+  assert.deepEqual(fieldErrorsOf(null), {})
+  assert.equal(new ApiError(422, 'x', body).fields.name, 'String should have at least 1 character')
+})
+
+test('a 422 with field errors says so in one line; other errors keep their own message', async () => {
+  const body = { detail: [{ loc: ['body', 'name'], type: 'string_too_short', msg: 'String should have at least 1 character' }] }
+  const api = createApi({ getToken: async () => 't', fetch: fakeFetch(422, body) })
+  await assert.rejects(api.createItem({}), (e) => e.status === 422 && /next to the fields/.test(e.message) && !!e.fields.name)
+  const api2 = createApi({ getToken: async () => 't', fetch: fakeFetch(422, { detail: 'bad cursor' }) })
+  await assert.rejects(api2.createItem({}), (e) => e.message === 'bad cursor')
 })

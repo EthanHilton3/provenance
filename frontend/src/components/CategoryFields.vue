@@ -6,13 +6,14 @@
     props:  categoryId  the item's category; the fields (inherited ones included) are loaded from the API
             modelValue  the attributes object, { key: value }
             editable    false = read-only rows, true = inputs
+            errors      validation errors by field (api.js fieldErrorsOf); a category field's is "attributes.<key>"
     emits:  update:modelValue with a new attributes object (blank values are left as '' and removed on save)
             fields      the category's template fields once loaded
 
   Handles the four template types (text, number, boolean, choice) with plain inputs. A field with show_if appears
   only while its condition holds (lib/fields.js); while hidden it keeps its value, and the views drop it on save
   with cleanForSave(). Values whose key is not in the category's template (an old category's fields, or anything
-  intake adds later) are shown as other details, never dropped.
+  intake adds later) are shown as other details, never dropped; they keep their type (a yes/no stays a checkbox).
 -->
 <template>
   <div class="cf">
@@ -23,6 +24,7 @@
         <label v-if="f.type === 'boolean'" class="check">
           <input type="checkbox" :checked="modelValue[f.key] === true" @change="set(f.key, $event.target.checked)" />
           <span>{{ f.label }}</span>
+          <span v-if="errors['attributes.' + f.key]" class="field-error" role="alert">{{ errors['attributes.' + f.key] }}</span>
         </label>
         <label v-else class="field">
           <span>{{ f.label }}</span>
@@ -33,14 +35,24 @@
           <input v-else-if="f.type === 'number'" class="input" type="number" inputmode="decimal" step="any"
             :value="modelValue[f.key] ?? ''" @input="setNumber(f.key, $event.target.value)" />
           <input v-else class="input" type="text" :value="modelValue[f.key] ?? ''" @input="set(f.key, $event.target.value)" />
+          <span v-if="errors['attributes.' + f.key]" class="field-error" role="alert">{{ errors['attributes.' + f.key] }}</span>
         </label>
       </template>
       <div v-if="extras.length" class="extras">
         <p class="label">Other details</p>
-        <label v-for="[k, v] in extras" :key="k" class="field">
-          <span>{{ k }}</span>
-          <input class="input" type="text" :value="v" @input="set(k, $event.target.value)" />
-        </label>
+        <template v-for="[k, v] in extras" :key="k">
+          <label v-if="typeof v === 'boolean'" class="check">
+            <input type="checkbox" :checked="v" @change="set(k, $event.target.checked)" />
+            <span>{{ labelOf(k) }}</span>
+          </label>
+          <label v-else class="field">
+            <span>{{ labelOf(k) }}</span>
+            <input v-if="typeof v === 'number'" class="input" type="number" inputmode="decimal" step="any" :value="v"
+              @input="setNumber(k, $event.target.value)" />
+            <input v-else class="input" type="text" :value="v" @input="set(k, $event.target.value)" />
+            <span v-if="errors['attributes.' + k]" class="field-error" role="alert">{{ errors['attributes.' + k] }}</span>
+          </label>
+        </template>
       </div>
     </template>
 
@@ -62,6 +74,7 @@ const props = defineProps({
   categoryId: { type: String, default: '' },
   modelValue: { type: Object, default: () => ({}) },
   editable: { type: Boolean, default: false },
+  errors: { type: Object, default: () => ({}) },
 })
 const emit = defineEmits(['update:modelValue', 'fields'])
 
@@ -102,6 +115,12 @@ function setNumber(key, raw) {
   set(key, Number.isNaN(n) ? raw : n)
 }
 
+// An old category's field has no label here, so its key is made readable: piece_count -> Piece count.
+function labelOf(key) {
+  const words = key.replace(/_/g, ' ').trim()
+  return words.charAt(0).toUpperCase() + words.slice(1)
+}
+
 function show(f, v) {
   if (typeof v === 'boolean') return v ? 'Yes' : 'No'
   return String(v)
@@ -113,7 +132,7 @@ const readRows = computed(() => {
     if (v === undefined || v === null || v === '') continue
     rows.push({ key: f.key, label: f.label, value: show(f, v) })
   }
-  for (const [k, v] of extras.value) rows.push({ key: k, label: k, value: show({}, v) })
+  for (const [k, v] of extras.value) rows.push({ key: k, label: labelOf(k), value: show({}, v) })
   return rows
 })
 </script>

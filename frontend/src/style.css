@@ -143,6 +143,7 @@ textarea.input { min-height: 88px; resize: vertical; }
 
 /* Messages */
 .notice { padding: 12px 14px; border-radius: 10px; font-size: 0.95rem; }
+.field-error { color: var(--danger); font-size: 0.875rem; font-weight: 500; }
 .notice-error { background: var(--danger-soft); color: var(--danger); }
 .notice-warn { background: var(--warn-soft); border: 1px solid var(--warn-line); }
 .notice-info { background: var(--accent-soft); }

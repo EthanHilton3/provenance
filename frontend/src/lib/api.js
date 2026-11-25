@@ -12,6 +12,7 @@ export class ApiError extends Error {
     this.name = 'ApiError'
     this.status = status
     this.body = body
+    this.fields = fieldErrorsOf(body)
   }
 }
 
@@ -40,8 +41,31 @@ export function messageOf(body, fallback) {
   return fallback || 'Something went wrong. Try again.'
 }
 
+/**
+ * Validation errors by field, for showing each next to its input: `{name: "...", "attributes.piece_count": "..."}`.
+ * A category field's key comes after `attributes`; the first error for a field wins. Empty for any other error.
+ */
+export function fieldErrorsOf(body) {
+  const out = {}
+  const d = body && body.detail
+  if (!Array.isArray(d)) return out
+  for (const e of d) {
+    if (!e || !Array.isArray(e.loc) || typeof e.msg !== 'string') continue
+    const [, field, key] = e.loc
+    if (typeof field !== 'string') continue
+    const name = field === 'attributes' && typeof key === 'string' ? `attributes.${key}` : field
+    // A category field's value is text, a number or yes/no, so a type error from any one branch of that union is
+    // reworded; a length error says how long text may be.
+    const wrongType = field === 'attributes' && key !== undefined && e.type !== 'string_too_long'
+    out[name] ??= wrongType ? 'Use text, a number or yes/no here.' : e.msg.replace(/^Value error, /, '')
+  }
+  return out
+}
+
 function errorFor(status, body, statusText) {
-  const message = messageOf(body, statusText)
+  // With a message next to each field, the notice only points at them.
+  const hasFields = status === 422 && Object.keys(fieldErrorsOf(body)).length > 0
+  const message = hasFields ? 'Some details need fixing. See the messages next to the fields.' : messageOf(body, statusText)
   // Only the stale-version 409 carries `current`; a unique-constraint 409 from the database does not.
   if (status === 409 && body && body.detail && typeof body.detail === 'object' && body.detail.current) {
     return new ConflictError(message, body.detail.current, body)

@@ -1,7 +1,7 @@
 """Items and categories. Every call goes through the user's own token, so Row Level Security does the access check."""
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -16,6 +16,13 @@ router = APIRouter()
 
 Condition = Literal['new', 'like_new', 'very_good', 'good', 'fair', 'poor']
 Intent = Literal['keep', 'maybe_sell', 'sell']
+
+# A category field's value is one plain value (text, number or yes/no), never nested. Typing the dict makes a bad
+# value a 422 whose location names the field (body.attributes.<key>), so the form can show it next to that field.
+# Whether a key belongs to the category is not checked: values from an old category are kept on purpose.
+AttrKey = Annotated[str, Field(min_length=1, max_length=64)]
+AttrValue = Annotated[str, Field(max_length=1000)] | bool | int | float
+Attributes = Annotated[dict[AttrKey, AttrValue], Field(max_length=100)]
 
 
 class ItemCreate(BaseModel):
@@ -42,7 +49,7 @@ class ItemCreate(BaseModel):
     franchise: str | None = Field(default=None, max_length=300)
     brand: str | None = Field(default=None, max_length=300)
     signed_by: str | None = Field(default=None, max_length=300)
-    attributes: dict = Field(default_factory=dict)
+    attributes: Attributes = Field(default_factory=dict)
 
 
 class ItemUpdate(BaseModel):
@@ -70,7 +77,7 @@ class ItemUpdate(BaseModel):
     franchise: str | None = Field(default=None, max_length=300)
     brand: str | None = Field(default=None, max_length=300)
     signed_by: str | None = Field(default=None, max_length=300)
-    attributes: dict | None = None
+    attributes: Attributes | None = None
 
     @model_validator(mode='after')
     def _valid_edit(self):
