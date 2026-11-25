@@ -325,7 +325,7 @@ The plan is 37.5 hours over 19 working days, plus about 3 hours already spent on
 - [x] **S7: Tue Nov 24** (2.5 h): Vue screens: items grouped by category, item detail, add an item by hand
 - [x] **Category review, before S8:** go through the category tree and each category's fields (add, rename, merge, move; fields to add or drop), now that they show in the app; apply the changes as a new migration, not an edit to the seed
 - [x] **S8: Wed Nov 25** (1.5 h): category fields form; **milestone: core demo** (add, browse, edit, photos)
-- [ ] **S9: Sat Nov 28** (2.5 h): `intake_jobs` queue and worker (SKIP LOCKED); Luna prompt and schema from the feasibility test
+- [x] **S9: Sat Nov 28** (2.5 h): `intake_jobs` queue and worker (SKIP LOCKED); Luna prompt and schema from the feasibility test
 
 **Week 3: AI intake and releases**
 
