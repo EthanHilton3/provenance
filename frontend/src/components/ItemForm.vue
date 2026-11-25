@@ -81,7 +81,12 @@ const moreOpen = ref(MORE_DETAILS.some((k) => String(props.draft[k] ?? '').trim(
 
 <style scoped>
 .more { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 4px 0; }
-.more summary { min-height: 44px; display: flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer; }
+.more summary { min-height: 44px; display: flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer; list-style: none; }
+.more summary::-webkit-details-marker { display: none; }
+.more summary::before {
+  content: '›'; display: inline-block; width: 12px; color: var(--muted); font-size: 1.3rem; line-height: 1; transition: transform 0.15s;
+}
+.more[open] summary::before { transform: rotate(90deg); }
 .more-body { padding: 4px 0 16px; }
 /* Side by side only when there is room: a phone's date picker is wider than half the screen.
    minmax(0, 1fr) lets a column shrink below its content instead of spilling into the next one. */

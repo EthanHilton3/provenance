@@ -1,12 +1,14 @@
 /**
- * Categories change rarely, so they are loaded once per session. Names are shown as a path ("Books › Novels")
- * because several children share a name ("Other").
+ * Categories change rarely, so they are loaded once per session. Names are shown as a path ("Kitchen › Drinkware")
+ * so a child is never mistaken for another one with a similar name. `entries` is what the picker searches
+ * (lib/categorySearch.js).
  */
 import { reactive } from 'vue'
 import { api } from './backend'
+import { buildEntries } from './categorySearch'
 import { cleanForSave } from './fields'
 
-const state = reactive({ list: [], byId: {}, loaded: false })
+const state = reactive({ list: [], entries: [], byId: {}, loaded: false })
 let loading = null
 const fieldsCache = new Map()
 
@@ -21,7 +23,8 @@ export async function loadCategories() {
   if (state.loaded) return state
   loading ??= api.listCategories().then((rows) => {
     state.byId = Object.fromEntries(rows.map((c) => [c.id, c]))
-    // Parents first, each followed by its children, for the picker.
+    state.entries = buildEntries(rows)
+    // Parents first, each followed by its children.
     const top = rows.filter((c) => !c.parent_id).sort((a, b) => a.name.localeCompare(b.name))
     state.list = top.map((p) => ({
       ...p,
