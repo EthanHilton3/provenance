@@ -45,7 +45,7 @@ import ItemForm from '../components/ItemForm.vue'
 import PhotoPicker from '../components/PhotoPicker.vue'
 import UploadList from '../components/UploadList.vue'
 import { api } from '../lib/backend'
-import { loadCategories } from '../lib/categories'
+import { cleanDraft, loadCategories } from '../lib/categories'
 import { createBody, emptyDraft } from '../lib/item'
 import { forgetCover } from '../lib/photos'
 import { useUploads } from '../lib/uploads'
@@ -69,7 +69,7 @@ async function save() {
   busy.value = true
   try {
     // The item first: photos are uploaded to an item, so it has to exist.
-    created.value = await api.createItem(createBody(draft.value))
+    created.value = await api.createItem(createBody(await cleanDraft(draft.value)))
   } catch (e) {
     error.value = e.message
     busy.value = false

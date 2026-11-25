@@ -176,3 +176,46 @@ def test_service_key_is_only_needed_when_used(monkeypatch):
     finally:
         monkeypatch.undo()
         config.get_settings.cache_clear()
+
+
+def test_franchise_brand_and_signed_by_round_trip_on_create(client):
+    saved = {'id': ITEM, 'franchise': 'Zelda', 'brand': 'Nintendo', 'signed_by': 'Eiji Aonuma'}
+    fake = use(client, FakeSupabase([(201, [saved])]))
+    r = client.post('/api/items', headers=AUTH, json={
+        'name': 'Signed poster', 'category_id': CAT, 'franchise': ' Zelda ', 'brand': 'Nintendo', 'signed_by': 'Eiji Aonuma'})
+    assert r.status_code == 201 and r.json() == saved
+    sent = json.loads(fake.calls[0].content)
+    assert (sent['franchise'], sent['brand'], sent['signed_by']) == ('Zelda', 'Nintendo', 'Eiji Aonuma')  # trimmed
+    # Not sent means null, like the other optional columns.
+    fake = use(client, FakeSupabase([(201, [{'id': ITEM}])]))
+    client.post('/api/items', headers=AUTH, json={'name': 'x', 'category_id': CAT})
+    sent = json.loads(fake.calls[0].content)
+    assert sent['franchise'] is None and sent['brand'] is None and sent['signed_by'] is None
+
+
+def test_new_columns_are_length_checked(client):
+    use(client, FakeSupabase())
+    for col in ('franchise', 'brand', 'signed_by'):
+        assert client.post('/api/items', headers=AUTH, json={'name': 'x', 'category_id': CAT, col: 'x' * 301}).status_code == 422
+        assert client.patch(f'/api/items/{ITEM}', headers=AUTH, json={'version': 1, col: 'x' * 301}).status_code == 422
+
+
+def test_patch_sends_only_the_new_columns_that_changed(client):
+    fake = use(client, FakeSupabase([(200, [{'id': ITEM, 'version': 8}])]))
+    r = client.patch(f'/api/items/{ITEM}', headers=AUTH, json={'version': 7, 'brand': 'Sony', 'franchise': None})
+    assert r.status_code == 200
+    assert json.loads(fake.calls[0].content) == {'brand': 'Sony', 'franchise': None}  # null clears; signed_by untouched
+    assert fake.calls[0].url.params['version'] == 'eq.7'
+
+
+def test_stale_edit_of_a_new_column_is_409_with_their_values(client):
+    current = {'id': ITEM, 'version': 6, 'brand': 'Theirs', 'franchise': 'Zelda', 'signed_by': None}
+    use(client, FakeSupabase([(200, []), (200, [current])]))
+    r = client.patch(f'/api/items/{ITEM}', headers=AUTH, json={'version': 5, 'brand': 'Mine'})
+    assert r.status_code == 409 and r.json()['detail']['current'] == current
+
+
+def test_categories_include_descriptions(client):
+    fake = use(client, FakeSupabase([(200, [])]))
+    client.get('/api/categories', headers=AUTH)
+    assert fake.calls[0].url.params['select'].split(',') == ['id', 'parent_id', 'name', 'owner_id', 'description']

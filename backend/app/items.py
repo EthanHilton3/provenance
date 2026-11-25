@@ -38,6 +38,10 @@ class ItemCreate(BaseModel):
     price_paid: Decimal | None = Field(default=None, ge=0, max_digits=10, decimal_places=2)
     location: str | None = Field(default=None, max_length=300)
     notes: str | None = Field(default=None, max_length=5000)
+    # On every item and searched across categories, so columns rather than category fields (attributes).
+    franchise: str | None = Field(default=None, max_length=300)
+    brand: str | None = Field(default=None, max_length=300)
+    signed_by: str | None = Field(default=None, max_length=300)
     attributes: dict = Field(default_factory=dict)
 
 
@@ -63,6 +67,9 @@ class ItemUpdate(BaseModel):
     price_paid: Decimal | None = Field(default=None, ge=0, max_digits=10, decimal_places=2)
     location: str | None = Field(default=None, max_length=300)
     notes: str | None = Field(default=None, max_length=5000)
+    franchise: str | None = Field(default=None, max_length=300)
+    brand: str | None = Field(default=None, max_length=300)
+    signed_by: str | None = Field(default=None, max_length=300)
     attributes: dict | None = None
 
     @model_validator(mode='after')
@@ -79,8 +86,9 @@ class ItemUpdate(BaseModel):
 
 @router.get('/categories')
 async def list_categories(db: Rest = Depends(db_for)):
-    """Built-in categories plus the user's own (RLS decides which)."""
-    return await db.select('categories', {'select': 'id,parent_id,name,owner_id', 'order': 'name.asc'})
+    """Built-in categories plus the user's own (RLS decides which). The description says what belongs in each;
+    the picker searches it."""
+    return await db.select('categories', {'select': 'id,parent_id,name,owner_id,description', 'order': 'name.asc'})
 
 
 @router.get('/categories/{category_id}/fields')

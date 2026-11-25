@@ -4,6 +4,7 @@
  */
 import { reactive } from 'vue'
 import { api } from './backend'
+import { cleanForSave } from './fields'
 
 const state = reactive({ list: [], byId: {}, loaded: false })
 let loading = null
@@ -39,6 +40,20 @@ export function categoryFields(id) {
     fieldsCache.set(id, api.categoryFields(id).catch((e) => { fieldsCache.delete(id); throw e }))
   }
   return fieldsCache.get(id)
+}
+
+/**
+ * The draft as it should be saved: values of conditional fields that are hidden right now are removed (cleanForSave).
+ * If the category's fields can't be loaded, nothing is removed: better to keep a stale value than lose one.
+ */
+export async function cleanDraft(draft) {
+  let fields
+  try {
+    fields = await categoryFields(draft.category_id)
+  } catch {
+    return draft
+  }
+  return { ...draft, attributes: cleanForSave(fields, draft.attributes) }
 }
 
 export const categories = state

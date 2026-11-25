@@ -13,17 +13,25 @@ export const CONDITIONS = [
 ]
 const CONDITION_LABEL = Object.fromEntries(CONDITIONS)
 
-/** The item columns the S7 forms edit, with their labels. `attributes` (the category's fields) is handled per key. */
+/**
+ * The item columns the forms edit, with their labels. `attributes` (the category's fields) is handled per key.
+ * Franchise, brand and signed-by are columns because every item has them and they are searched across categories.
+ */
 export const ITEM_FIELDS = [
   ['name', 'Name'],
   ['category_id', 'Category'],
+  ['franchise', 'Franchise / series'],
+  ['brand', 'Brand / maker'],
+  ['signed_by', 'Signed by'],
   ['condition_grade', 'Condition'],
   ['sealed', 'Sealed'],
   ['acquired_on', 'Acquired'],
   ['source', 'Where from'],
   ['notes', 'Notes'],
 ]
-const NULLABLE = new Set(['condition_grade', 'acquired_on', 'source', 'notes'])
+const NULLABLE = new Set(['condition_grade', 'acquired_on', 'source', 'notes', 'franchise', 'brand', 'signed_by'])
+/** The columns in the form's "More details" section. */
+export const MORE_DETAILS = ['franchise', 'brand', 'signed_by']
 
 const isEmpty = (v) => v === null || v === undefined || (typeof v === 'string' && v.trim() === '')
 /** Equal for editing purposes: blank text and null are the same, and so are "3" and 3. */
@@ -36,8 +44,8 @@ export function same(a, b) {
 
 /** A blank form for a new item. */
 export function emptyDraft(categoryId = '') {
-  return { name: '', category_id: categoryId, condition_grade: '', sealed: false, acquired_on: '', source: '',
-    notes: '', attributes: {} }
+  return { name: '', category_id: categoryId, franchise: '', brand: '', signed_by: '', condition_grade: '', sealed: false,
+    acquired_on: '', source: '', notes: '', attributes: {} }
 }
 
 /** An editable copy of a saved item. */
