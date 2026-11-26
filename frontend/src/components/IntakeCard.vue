@@ -3,6 +3,8 @@
   values marked, the follow-up questions on top. Save creates the item; Discard throws the card and photo away.
   A failed job opens the same card, blank, so the item can be added by hand with its photo.
   Unsaved edits are kept on this device until you save or discard (lib/intakeDrafts.js).
+  S12: films, shows and books show their catalog match (CatalogMatch) and can add the release to the shared catalog;
+  if a near-identical release is already there, saving asks whether to use it (DuplicatePrompt) instead.
 -->
 <template>
   <div class="review">
@@ -27,17 +29,28 @@
         </fieldset>
       </template>
 
+      <CatalogMatch v-if="ready && shareable(kind) && !already" :key="kind" v-model="catalog" :query="query" :kind="kind"
+        allow-share />
+
+      <DuplicatePrompt v-if="similar" :similar="similar" :busy="busy" @use="useExisting" @different="notMine"
+        @cancel="similar = null" />
+
+      <section v-if="unshared" class="notice notice-warn stack" role="status">
+        <span>{{ unshared }}</span>
+        <button type="button" class="btn btn-soft" :disabled="busy" @click="saveItem(null)">Save without sharing</button>
+      </section>
+
       <section v-if="already" class="notice notice-info" role="status">
         Already saved, from another tab or an earlier tap:
         <RouterLink v-for="it in already" :key="it.id" :to="`/items/${it.id}`" class="saved-link">{{ it.name }}</RouterLink>
       </section>
       <p v-else-if="error" class="notice notice-error" role="alert">{{ error }}</p>
 
-      <div v-if="!already" class="actions">
+      <div v-if="!already && !similar" class="actions">
         <button type="button" class="btn btn-danger-quiet" :disabled="busy" @click="asking = true">Discard</button>
         <button type="button" class="btn btn-primary" :disabled="busy || !canSave" @click="save">{{ busy ? 'Saving…' : 'Save item' }}</button>
       </div>
-      <button v-else type="button" class="btn btn-primary btn-block" @click="$emit('finished', { saved: 0 })">Next</button>
+      <button v-else-if="already" type="button" class="btn btn-primary btn-block" @click="$emit('finished', { saved: 0 })">Next</button>
     </div>
 
     <ConfirmSheet :open="asking" title="Discard this card?" confirm-label="Discard" :busy="busy" :error="discardError"
@@ -49,13 +62,16 @@
 
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
+import CatalogMatch from './CatalogMatch.vue'
 import ConfirmSheet from './ConfirmSheet.vue'
+import DuplicatePrompt from './DuplicatePrompt.vue'
 import FollowUps from './FollowUps.vue'
 import IntakePhoto from './IntakePhoto.vue'
 import ItemForm from './ItemForm.vue'
 import OccasionPicker from './OccasionPicker.vue'
 import { api } from '../lib/backend'
-import { categoryFields, cleanDraft } from '../lib/categories'
+import { catalogKind, catalogQuery, needsChoice, releaseBody, resolveRelease, shareable } from '../lib/catalog'
+import { categories, categoryFields, cleanDraft, loadCategories } from '../lib/categories'
 import { answer, cardToDraft, clearFlags, confirmItem, followUps, itemErrors } from '../lib/intake'
 import { forgetDraft, loadDraft, saveDraft } from '../lib/intakeDrafts'
 
@@ -70,6 +86,7 @@ const fields = ref([])
 const ready = ref(false)
 
 onMounted(async () => {
+  await loadCategories().catch(() => null) // without them the card still works, just with no catalog match
   const kept = loadDraft(props.job.id)
   const catId = kept?.draft?.category_id || card.value?.category_id
   fields.value = catId ? await categoryFields(catId).catch(() => []) : []
@@ -105,18 +122,65 @@ function onDraft(next) {
 }
 const onAnswer = (key, value) => onDraft(answer(draft.value, key, value))
 
+// --- the catalog match and the shared release (S12) ---
+
+const kind = computed(() => (draft.value ? catalogKind(draft.value.category_id, categories.byId, card.value) : null))
+const query = ref({})
+watch(kind, (k) => { query.value = catalogQuery({ card: card.value, draft: draft.value, kind: k, barcode: props.job.barcode }) })
+const catalog = ref(null)       // {choice, share, query, result} from CatalogMatch
+const similar = ref(null)
+const declined = ref([])
+const unshared = ref('')
+
 const busy = ref(false)
 const error = ref('')
 const errors = ref({})
 const already = ref(null)
 
 async function save() {
-  if (!canSave.value) return
+  if (!canSave.value || busy.value) return
+  const c = catalog.value
+  const sharing = shareable(kind.value) && c?.share
+  if (sharing && needsChoice({ share: true, kind: kind.value, choice: c.choice, result: c.result })) {
+    error.value = 'Pick the matching title, or None of these, so the shared catalog gets the right one.'
+    return
+  }
+  if (!sharing) return saveItem(null)
+  busy.value = true
+  error.value = ''
+  unshared.value = ''
+  try {
+    const body = releaseBody(draft.value, { choice: c.choice, query: c.query, kind: kind.value, barcode: props.job.barcode,
+      declined: declined.value })
+    const r = await resolveRelease(api, body)
+    if (r.similar) similar.value = r.similar
+    else if (r.message) unshared.value = r.message
+    else return await saveItem(r.releaseId)
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    busy.value = false
+  }
+}
+
+function useExisting(id) {
+  similar.value = null
+  saveItem(id)
+}
+
+function notMine() {
+  declined.value = [...declined.value, ...similar.value.map((s) => s.id)]
+  similar.value = null
+  save()
+}
+
+async function saveItem(releaseId) {
   busy.value = true
   error.value = ''
   errors.value = {}
   try {
-    const { items } = await api.confirmIntakeJob(props.job.id, [confirmItem(await cleanDraft(draft.value))])
+    const item = confirmItem(await cleanDraft({ ...draft.value, release_id: releaseId }))
+    const { items } = await api.confirmIntakeJob(props.job.id, [item])
     forgetDraft(props.job.id)
     emit('finished', { saved: items.length, items })
   } catch (e) {

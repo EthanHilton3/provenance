@@ -7,6 +7,8 @@
   my private item linked to the shared release; the card then clears for the next scan.
   Not found, or the catalog can't be asked right now: photograph the box (AI intake) or add it by hand, keeping the
   barcode either way.
+  S12: a film, show or book release shows its work. A release with no work yet searches the catalog (CatalogMatch)
+  and, if you pick a match, saving links it; the first link wins and nobody can change it afterwards.
 -->
 <template>
   <div class="stack">
@@ -17,6 +19,7 @@
 
     <p v-if="saved" class="notice notice-info" role="status">
       Saved <RouterLink :to="`/items/${saved.id}`">{{ saved.name }}</RouterLink>. Scan the next one.
+      <span v-if="saved.note" class="block">{{ saved.note }}</span>
     </p>
 
     <!-- finding the code -->
@@ -67,6 +70,8 @@
           <ItemForm :draft="draft" :errors="errors" :flags="flags" @update:draft="onDraft" @fields="fields = $event" />
           <OccasionPicker :model-value="draft.occasion_id" @update:model-value="onDraft({ ...draft, occasion_id: $event })" />
         </fieldset>
+        <CatalogMatch v-if="searchable(kind) || result.release.work" v-model="catalog" :query="query" :kind="kind"
+          :linked-work="result.release.work" />
         <p v-if="error" class="notice notice-error" role="alert">{{ error }}</p>
         <div class="two">
           <button type="button" class="btn btn-soft" :disabled="busy" @click="reset">Scan another</button>
@@ -80,11 +85,13 @@
 <script setup>
 import { computed, ref } from 'vue'
 import BarcodeScanner from '../components/BarcodeScanner.vue'
+import CatalogMatch from '../components/CatalogMatch.vue'
 import FollowUps from '../components/FollowUps.vue'
 import ItemForm from '../components/ItemForm.vue'
 import OccasionPicker from '../components/OccasionPicker.vue'
 import { api } from '../lib/backend'
 import { categoryForKind, displayBarcode, editionQuestion, lookupToDraft, missText, parseBarcode } from '../lib/barcode'
+import { candidateLine, isbnOf, searchable } from '../lib/catalog'
 import { categoryFields, cleanDraft, loadCategories } from '../lib/categories'
 import { answer, clearFlags, confirmItem, followUps } from '../lib/intake'
 import { loadOccasions } from '../lib/occasions'
@@ -144,6 +151,11 @@ const draft = ref(null)
 const flags = ref({})
 const fields = ref([])
 const ready = ref(false)
+const catalog = ref(null)
+// The listing's kind -> the catalog's: a disc listing may be a film or a show.
+const kind = computed(() => ({ movie: 'screen', book: 'book', game: 'game' }[result.value?.hints?.kind] || null))
+const query = computed(() => ({ title: result.value?.release?.title || '', kind: kind.value, year: null,
+  isbn: kind.value === 'book' ? isbnOf(result.value?.barcode) : null }))
 
 async function openCard(r) {
   saved.value = null
@@ -179,8 +191,9 @@ async function save() {
   error.value = ''
   errors.value = {}
   try {
+    const note = await linkWork()
     const item = await api.createItem(confirmItem(await cleanDraft(draft.value)))
-    saved.value = { id: item.id, name: item.name }
+    saved.value = { id: item.id, name: item.name, note }
     reset({ keepSaved: true })
   } catch (e) {
     error.value = e.message
@@ -190,11 +203,25 @@ async function save() {
   }
 }
 
+/** Links the release to the picked work, if it has none. A failure doesn't stop the save: it's said after. */
+async function linkWork() {
+  const ref_ = catalog.value?.choice
+  const release = result.value.release
+  if (release.work || !ref_ || ref_ === 'none') return ''
+  try {
+    const r = await api.linkReleaseWork(release.id, ref_)
+    return r.linked ? '' : `Someone already linked this release to ${candidateLine(r.work)}; it stays that way.`
+  } catch (e) {
+    return `Not linked to the catalog: ${e.message}`
+  }
+}
+
 function reset({ keepSaved = false } = {}) {
   if (!keepSaved) saved.value = null
   phase.value = 'scan'
   result.value = null
   draft.value = null
+  catalog.value = null
   typed.value = ''
   codeError.value = ''
   error.value = ''
@@ -210,4 +237,5 @@ fieldset { border: 1px solid var(--line); margin: 0; min-width: 0; }
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .release { display: grid; gap: 4px; }
 .release .title { font-weight: 600; font-size: 1.05rem; overflow-wrap: anywhere; }
+.block { display: block; margin-top: 4px; }
 </style>

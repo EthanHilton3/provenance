@@ -15,7 +15,8 @@ class Settings(BaseSettings):
     supabase_anon_key: SecretStr
     # Backend only. Bypasses RLS: only for the shared catalog and the intake worker, never for user reads.
     supabase_service_role_key: SecretStr = SecretStr('')
-    # The intake worker's key (app/worker.py); the API never calls OpenAI. TMDB is for the catalog lookups (S12).
+    # The intake worker's key (app/worker.py). The API uses it only for the duplicate-release check's embeddings
+    # (app/embeddings.py, S12), never for the vision models. TMDB is for the catalog service (app/catalog.py).
     openai_api_key: SecretStr = SecretStr('')
     tmdb_api_key: SecretStr = SecretStr('')
 
@@ -27,7 +28,32 @@ class Settings(BaseSettings):
     upc_per_user_daily: int = 20
     upc_per_minute: int = 5
 
+    # Catalog service (app/catalog.py). TMDB_API_KEY is a v3 key: it goes in TMDB's query string only, never in a
+    # log. TMDB's own limit is about 50 requests a second; these caps are for abuse, not for TMDB. Open Library asks
+    # for gentle use, so it gets a lower per-minute cap. The URLs can point at app/fake_catalog.py for a local walk.
+    tmdb_url: str = 'https://api.themoviedb.org/3'
+    tmdb_daily_budget: int = 20000
+    tmdb_per_user_daily: int = 500
+    tmdb_per_minute: int = 120
+    openlibrary_url: str = 'https://openlibrary.org'
+    openlibrary_daily_budget: int = 5000
+    openlibrary_per_user_daily: int = 300
+    openlibrary_per_minute: int = 30
+
+    # Duplicate-release check (app/embeddings.py, app/releases.py). The threshold comes from docs/DUPLICATE_THRESHOLD.md.
+    duplicate_max_distance: float = 0.028
+    embed_daily_budget: int = 5000
+    embed_per_user_daily: int = 200
+    embed_per_minute: int = 60
+    # Fake vectors instead of OpenAI, for a local walk at no cost. Refused unless Supabase is local: fake vectors in
+    # a real database would make the check meaningless for everyone.
+    embeddings_fake: bool = False
+
     cors_origins: str = 'http://localhost:5173'
+
+    @property
+    def supabase_is_local(self) -> bool:
+        return self.supabase_url.startswith(('http://127.0.0.1', 'http://localhost'))
 
     @property
     def supabase_rest_url(self) -> str:

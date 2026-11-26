@@ -2,7 +2,10 @@
   <div class="app">
     <header v-if="auth.user" class="topbar">
       <RouterLink to="/" class="brand">Provenance</RouterLink>
-      <button class="btn btn-quiet btn-sm" @click="leave">Sign out</button>
+      <nav class="nav">
+        <RouterLink to="/about" class="btn btn-quiet btn-sm">About</RouterLink>
+        <button class="btn btn-quiet btn-sm" @click="leave">Sign out</button>
+      </nav>
     </header>
     <main class="page" :class="{ wide: route.meta.wide }">
       <RouterView />

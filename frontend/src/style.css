@@ -80,6 +80,7 @@ a { color: var(--accent); }
   border-bottom: 1px solid var(--line);
 }
 .brand { display: inline-flex; align-items: center; min-height: var(--tap); font-family: var(--font-title); font-size: 1.15rem; font-weight: 600; color: var(--text); text-decoration: none; }
+.nav { display: flex; align-items: center; gap: 4px; }
 .page {
   max-width: 640px; margin: 0 auto;
   padding: 16px 16px calc(env(safe-area-inset-bottom) + 96px);
