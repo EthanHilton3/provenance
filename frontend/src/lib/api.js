@@ -181,6 +181,13 @@ export function createApi({ getToken, fetch: fetchFn = (...a) => globalThis.fetc
 
     /** {status: found | not_found | unavailable, barcode, release, hints, message}. 422 for a code that isn't valid. */
     lookupBarcode: (code) => request('POST', '/barcodes/lookup', { code }),
+    /** {status: ok | skipped | unavailable, step, strength: strong | weak, candidates, sources, message}. */
+    searchCatalog: ({ title, kind, year = null, isbn = null }) =>
+      request('POST', '/catalog/search', { title, kind, ...(year ? { year } : {}), ...(isbn ? { isbn } : {}) }),
+    /** A shared release from approved catalog facts. {status: created | existing | similar | unavailable, release, similar}. */
+    createRelease: (body) => request('POST', '/releases', body),
+    /** Links a release that has no work yet. {linked, work}: a release that has one keeps it. */
+    linkReleaseWork: (releaseId, ref) => request('POST', `/releases/${enc(releaseId)}/work`, { ref }),
     /** 409 if already saved (another tab, a double tap): the error body's detail.job lists what was saved. */
     confirmIntakeJob: (id, items) => request('POST', `/intake/jobs/${enc(id)}/confirm`, { items }),
     discardIntakeJob: (id) => request('POST', `/intake/jobs/${enc(id)}/discard`),

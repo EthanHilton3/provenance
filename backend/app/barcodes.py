@@ -34,6 +34,8 @@ PROVIDER = 'upcitemdb'
 HIT_TTL = timedelta(days=30)
 MISS_TTL = timedelta(days=7)
 RELEASE_COLUMNS = 'id,barcode,title,edition,format,publisher,release_year,verified,attributes'
+# S12: the release's work, if it has one, so the card shows it instead of searching the catalog.
+RELEASE_SELECT = RELEASE_COLUMNS + ',release_works(position,works(id,title,year,kind,catalog_ref))'
 
 Status = Literal['found', 'not_found', 'unavailable']
 Source = Literal['releases', 'cache', 'upcitemdb'] | None
@@ -45,7 +47,9 @@ class Lookup(BaseModel):
 
 
 def _public_release(r: dict) -> dict:
-    return {k: r.get(k) for k in RELEASE_COLUMNS.split(',')}
+    links = sorted(r.get('release_works') or [], key=lambda rw: (rw.get('position') is None, rw.get('position') or 0))
+    work = next((rw['works'] for rw in links if rw.get('works')), None)
+    return {**{k: r.get(k) for k in RELEASE_COLUMNS.split(',')}, 'work': work}
 
 
 def _product_of(release: dict) -> dict:
@@ -103,7 +107,7 @@ async def lookup(body: Lookup, request: Request, user: AuthUser = Depends(curren
     except gtin.BadBarcode as e:
         raise HTTPException(422, detail={'message': str(e), 'reason': 'bad_barcode'}) from None
 
-    rows = await db.select('releases', {'select': RELEASE_COLUMNS, 'barcode': f'eq.{bc.code}'})
+    rows = await db.select('releases', {'select': RELEASE_SELECT, 'barcode': f'eq.{bc.code}'})
     if rows:
         return _answer(bc, 'found', 'releases', rows[0])
 

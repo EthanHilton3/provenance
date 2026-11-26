@@ -137,3 +137,48 @@ About four minutes: a scan that finds the release with no AI call, a miss handed
 - **Two people scanning the same new code at the same moment can spend two lookups.** They still get one release.
 - **No release view on the item page** yet; the link is there (`items.release_id`) but nothing shows it.
 - **Not covered by the S11 walk:** a real phone camera (the live scan was driven by a drawn barcode fed in as a fake camera stream, through the same WASM decoder iPhone uses), iPhone Safari itself, the tunnel, the phone-width layout of the card, real photos from the barcode test (generated photos only), and the real UPCitemdb (`PROVENANCE_LIVE_UPC=1 pytest tests/test_live_barcode.py -s`, one lookup, not run).
+
+# Catalog match and shared releases demo (S12)
+
+About five minutes: a photo card that finds its film, saving it to the shared catalog, the "this looks like an existing release" question, a barcode release getting its film, and what happens when the catalog says no. Written from a run against local Supabase with the fake model, a fake TMDB and Open Library, and fake embeddings, so it costs nothing and calls nobody.
+
+## Before the demo
+
+1. Local Supabase with every migration applied, environment pointed at it, as in the S10 demo.
+2. Fake catalogs: `cd backend && ../.venv/Scripts/python -m uvicorn app.fake_catalog:app --port 8003` (TMDB and Open Library in one) and the fake UPCitemdb from S11. Point the backend at them: `TMDB_URL=http://127.0.0.1:8003/3`, `OPENLIBRARY_URL=http://127.0.0.1:8003/ol`, `UPCITEMDB_URL=http://127.0.0.1:8002/prod/trial/lookup`.
+3. `EMBEDDINGS_FAKE=true` for the backend: word-overlap vectors instead of OpenAI. The backend refuses it unless Supabase is local. For the real duplicate check leave it unset (it needs `OPENAI_API_KEY`; about $0.0000004 a release).
+4. Backend, fake worker and frontend as before. Photos: **green** = a film on disc (Spirited Away), **red** = a Switch game.
+
+## Steps
+
+1. **The match.** Add from photos, one green photo, Review. Under the form: "Which film is this?" with **Spirited Away (2001)**, its Japanese title, TMDB, and **Best match**, already chosen. *Point out: the AI's search text was cleaned in code; the year in it is a hint, not part of the title.*
+2. **Share it.** "Add this release to the shared catalog" is ticked, and the line under it says what is shared (title, format, edition, barcode; the film's title, year and kind) and what stays private. Tap Opened and Blu-ray, type a note ("Gift from grandma"), Save. The item is linked to a new shared release, linked to the TMDB film. The note is only on your item.
+3. **Use it?** Upload another green photo. Set Packaging to Standard case, Blu-ray, Save: "This looks like a release that's already in the shared catalog. Use it?" with Spirited Away · Blu-ray · Standard edition · 2001. Use this one: the item links to that release; nothing new is made.
+4. **Not a duplicate.** A third green photo, left as Steelbook, Blu-ray, Save: no question, because a steelbook is a different release. It gets its own release under the same film.
+5. **No, mine is different.** Two red photos (Zelda, a game: no catalog search, just the shared-catalog box). Save the first. Save the second: the question appears; No, mine is different makes a second release, and both share one game work. *Point out: you decide; nothing is merged for you.*
+6. **A barcode release gets its film.** Scan a barcode, type `826663208511` (Nausicaä steelbook). The store's long title still finds **Nausicaä of the Valley of the Wind (1984)** as Best match (the search drops "(Limited Edition Steelbook) (Blu-ray + DVD)"). Save: the release is linked. Type the code again: "In the shared catalog as Nausicaä of the Valley of the Wind (1984)", and no search.
+7. **A weak match is never chosen for you.** Type `032429348128` (Star Trek: Stardate Collection). The only result is Star Wars (1977), listed but not chosen: "Nothing is linked until you choose."
+8. **The catalog says no.** In "Search for", type `Star Trek ratelimit` and Search: "The catalog can't be reached right now; you can still save." Save works. Every TMDB search pauses for 30 s after that 429, and nothing was cached.
+9. **Credits.** About (top right): the TMDB logo and notice, Open Library and UPCitemdb.
+
+## How it decides (for questions)
+
+- **Catalogs:** Movies & TV → TMDB (film, show, or both when the card doesn't say), Books → Open Library, Video Games › Games → no catalog (no IGDB yet) but can be shared, everything else → no catalog and no sharing.
+- **Fallbacks:** ISBN (books) → the title with the year hint → the title with format, platform, edition words and brackets removed, no year → nothing ("None of these" makes a user work).
+- **Strong or weak:** strong only for an exact title the year confirms, or the only exact title when there is no year. TMDB has two shows called "Avatar: The Last Airbender" (2005 and 2024): without a year that is weak, so nothing is chosen.
+- **Cache and limits:** `catalog_cache` keeps results 30 days and empty answers 7; 429s, timeouts and errors are never cached. TMDB 6 s timeout, Open Library 10 s (it took 5.3 s in the smoke test), one retry after a short backoff. Per-user and per-minute caps through `begin_catalog_call()`, and a pause as long as a 429 asks.
+- **Duplicate check:** releases without a barcode embed "title | format | edition | year" with text-embedding-3-small at 512 dimensions. An existing release is offered when the cosine distance is at most 0.028 and the formats don't differ ([evidence](DUPLICATE_THRESHOLD.md): 14 of 18 duplicates found, 0 of 24 different editions or formats offered). A barcode decides by its unique index instead.
+- **Two people at once:** creating a release takes an advisory lock and re-runs the check inside it, so the second person is asked "use it?" about the first's release instead of making a twin. One work per catalog entry (unique `catalog_ref`, ON CONFLICT), and a release keeps the first work it was linked to.
+- **Privacy:** the API accepts only catalog facts for a shared release. `created_by` on releases and works is hidden from users by column grants, so nobody can list what another user has added.
+
+## Known rough edges
+
+- **The group-photo grid doesn't match or share yet.** Its rows save as before (decided for S12).
+- **Some real duplicates are missed:** a diacritic (Nausicaä), a shortened title, "steel book" spelled apart, a missing year. A miss makes a second shared release; there is no merge tool for moderation yet.
+- **UPCitemdb releases have no embedding**, so a photographed box isn't matched against a release someone made by scanning.
+- **An ISBN that UPCitemdb doesn't know** goes to the photo or the form; Open Library isn't asked to make the release.
+- **The barcode card's "Search for" box shows the store's full title**; the search itself drops the edition and format words.
+- **If saving the item fails after the release was made**, the shared release stays (it holds catalog facts only).
+- **User-made works are merged only by exact title, kind and year.**
+- **TMDB's terms need a separate agreement for commercial use**, which the Pro plan would be.
+- **Not covered by the S12 walk:** a real phone and the phone-width layout, the real vision model, the real TMDB, Open Library and OpenAI in the browser (each was called directly from the backend code in a smoke test instead: Princess Mononoke strong, the two Avatars weak, The Hobbit by ISBN, one real embedding through PostgREST into pgvector), light mode, and the cloud project (the migration is applied locally only).

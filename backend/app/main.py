@@ -8,12 +8,14 @@ from fastapi.responses import JSONResponse
 
 from .auth import AuthUser, current_user
 from .barcodes import router as barcodes_router
+from .catalog import router as catalog_router
 from .config import get_settings
 from .db import DbError
 from .intake import router as intake_router
 from .items import router as items_router
 from .occasions import router as occasions_router
 from .photos import router as photos_router
+from .releases import router as releases_router
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +59,8 @@ def create_app() -> FastAPI:
     app.include_router(intake_router, prefix='/api')
     app.include_router(occasions_router, prefix='/api')
     app.include_router(barcodes_router, prefix='/api')
+    app.include_router(catalog_router, prefix='/api')
+    app.include_router(releases_router, prefix='/api')
     return app
 
 
