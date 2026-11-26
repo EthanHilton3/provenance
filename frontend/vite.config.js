@@ -13,6 +13,9 @@ export default defineConfig(({ mode }) => {
       port: 5174,
       strictPort: true,
       proxy: { '/api': env.API_TARGET || 'http://127.0.0.1:8000' },
+      // Phone testing: the camera needs https, so `cloudflared tunnel --url http://localhost:5174` gives the dev
+      // server a public https address. Off unless TUNNEL=1; Vite refuses any other Host header.
+      ...(env.TUNNEL ? { allowedHosts: ['.trycloudflare.com'], hmr: { clientPort: 443 } } : {}),
     },
   }
 })

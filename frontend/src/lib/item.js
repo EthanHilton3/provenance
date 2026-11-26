@@ -77,6 +77,7 @@ export function createBody(draft) {
   const body = {}
   for (const [k] of ITEM_FIELDS) body[k] = clean(k, draft[k])
   body.attributes = cleanAttributes(draft.attributes)
+  if (draft.release_id) body.release_id = draft.release_id // from a barcode scan: my copy of a shared release
   return body
 }
 

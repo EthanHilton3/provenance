@@ -22,8 +22,9 @@ from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from . import gtin
 from .auth import AuthUser, current_user, db_for, storage_for
 from .db import DbError, Rest
 from .items import ItemCreate
@@ -32,7 +33,7 @@ from .storage import SIGNED_URL_SECONDS, Storage, StorageError
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-COLUMNS = ('id,mode,status,card,error,attempts,max_attempts,occasion_id,created_at,updated_at,'
+COLUMNS = ('id,mode,status,card,error,attempts,max_attempts,occasion_id,barcode,created_at,updated_at,'
            'photos(id,storage_path,item_id,width,height),items!items_intake_job_fk(id,name)')
 Status = Literal['queued', 'processing', 'needs_review', 'done', 'failed', 'discarded']
 OPEN = ('queued', 'processing', 'needs_review', 'failed')  # still needs something from the worker or the owner
@@ -45,6 +46,19 @@ class JobCreate(BaseModel):
     photo_ids: list[UUID] = Field(min_length=1, max_length=50)
     mode: Literal['single', 'group']
     occasion_id: UUID | None = None
+    # A barcode the catalog did not know ("photograph the box" after a miss): kept with the one photo of one item.
+    barcode: str | None = Field(default=None, max_length=40)
+
+    @model_validator(mode='after')
+    def _barcode(self):
+        if self.barcode is not None:
+            try:
+                self.barcode = gtin.parse(self.barcode).code
+            except gtin.BadBarcode as e:
+                raise ValueError(str(e)) from None
+            if self.mode != 'single' or len(self.photo_ids) != 1:
+                raise ValueError('A barcode goes with one photo of one item')
+        return self
 
 
 class Confirm(BaseModel):
@@ -103,6 +117,8 @@ async def create_jobs(body: JobCreate, db: Rest = Depends(db_for), storage: Stor
     args = {'p_photo_ids': [str(p) for p in body.photo_ids], 'p_mode': body.mode}
     if body.occasion_id:
         args['p_occasion_id'] = str(body.occasion_id)
+    if body.barcode:
+        args['p_barcode'] = body.barcode
     created = await db.rpc('create_intake_jobs', args)
     ids = [r['id'] for r in created]
     rows = await db.select('intake_jobs', {'select': COLUMNS, 'id': f'in.({",".join(ids)})'})

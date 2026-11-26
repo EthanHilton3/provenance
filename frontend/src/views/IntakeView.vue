@@ -11,6 +11,11 @@
     </div>
     <h1>Add from photos</h1>
 
+    <p v-if="barcode" class="notice notice-info small" role="status">
+      Barcode {{ displayBarcode(barcode) }} isn't in the catalog. Take one photo of the front of the box; the barcode is
+      kept with it. <button type="button" class="btn btn-quiet btn-sm" :disabled="busy" @click="dropBarcode">Don't keep it</button>
+    </p>
+
     <p v-if="route.query.saved" class="notice notice-info" role="status">
       Saved {{ route.query.saved }} {{ route.query.saved === '1' ? 'item' : 'items' }}. <RouterLink to="/">See my things</RouterLink>
     </p>
@@ -21,8 +26,8 @@
       <div class="field" role="radiogroup" aria-labelledby="mode-label">
         <span id="mode-label" class="label">Each photo shows</span>
         <div class="seg mode">
-          <label><input v-model="mode" type="radio" value="single" :disabled="busy" /> One item</label>
-          <label><input v-model="mode" type="radio" value="group" :disabled="busy" /> Many items</label>
+          <label><input v-model="mode" type="radio" value="single" :disabled="busy || !!barcode" /> One item</label>
+          <label><input v-model="mode" type="radio" value="group" :disabled="busy || !!barcode" /> Many items</label>
         </div>
         <span class="muted small">{{ mode === 'single'
           ? 'One card per photo. Best for a single thing, front on.'
@@ -38,7 +43,8 @@
         <button v-if="unqueued.length" type="button" class="btn btn-quiet btn-sm" :disabled="busy" @click="queue">Try again</button>
       </p>
 
-      <button type="button" class="btn btn-primary btn-block" :disabled="busy || !toSend" @click="start">
+      <p v-if="barcode && toSend > 1" class="field-error" role="alert">One photo goes with a barcode. Remove the others, or tap "Don't keep it".</p>
+      <button type="button" class="btn btn-primary btn-block" :disabled="busy || !toSend || (!!barcode && toSend > 1)" @click="start">
         {{ busy ? 'Uploading…' : toSend ? `Upload and read ${toSend} ${toSend === 1 ? 'photo' : 'photos'}` : 'Choose photos first' }}
       </button>
     </section>
@@ -91,18 +97,26 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import ConfirmSheet from '../components/ConfirmSheet.vue'
 import OccasionPicker from '../components/OccasionPicker.vue'
 import PhotoPicker from '../components/PhotoPicker.vue'
 import UploadList from '../components/UploadList.vue'
 import { api } from '../lib/backend'
+import { displayBarcode, parseBarcode } from '../lib/barcode'
 import { hasPending, jobsKey, nextDelay, statusText } from '../lib/intake'
 import { forgetDraft } from '../lib/intakeDrafts'
 import { loadOccasions, occasionName } from '../lib/occasions'
 import { useUploads } from '../lib/uploads'
 
 const route = useRoute()
+const router = useRouter()
+// From /scan after a barcode miss: the one photo taken next keeps the code (intake_jobs.barcode).
+const barcode = ref(parseBarcode(route.query.barcode || '').code || '')
+function dropBarcode() {
+  barcode.value = ''
+  router.replace({ query: { ...route.query, barcode: undefined } })
+}
 const uploads = useUploads()
 const mode = ref('single')
 const occasionId = ref('')
@@ -126,8 +140,9 @@ async function queue() {
   if (!unqueued.value.length) return
   busy.value = true
   try {
-    const created = await api.createIntakeJobs(unqueued.value, mode.value, occasionId.value || null)
+    const created = await api.createIntakeJobs(unqueued.value, mode.value, occasionId.value || null, barcode.value || null)
     unqueued.value = []
+    if (barcode.value) dropBarcode() // used: the next upload is an ordinary one
     uploads.clearDone()
     merge(created)
     schedule(true)

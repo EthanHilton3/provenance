@@ -6,6 +6,7 @@ Users are impersonated the way PostgREST does it: `set local role authenticated`
 import importlib.util
 import json
 import os
+import random
 import uuid
 from contextlib import contextmanager
 from pathlib import Path
@@ -70,3 +71,15 @@ def category_id(admin) -> uuid.UUID:
         "select c.id from categories c join categories p on p.id = c.parent_id "
         "where p.name = 'Video Games' and c.name = 'Games' and c.owner_id is null"
     ).fetchone()[0]
+
+
+def check_digit(body: str) -> str:
+    """The GTIN mod-10 check digit for the digits before it (weights 3, 1, 3... from the right)."""
+    total = sum(int(d) * (3 if i % 2 == 0 else 1) for i, d in enumerate(reversed(body)))
+    return str((10 - total % 10) % 10)
+
+
+def random_upc() -> str:
+    """A random UPC-A in the 2xx restricted-circulation range (never a real product), with a valid check digit."""
+    body = '2' + ''.join(random.choices('0123456789', k=10))
+    return body + check_digit(body)

@@ -173,8 +173,14 @@ export function createApi({ getToken, fetch: fetchFn = (...a) => globalThis.fetc
     /** `open: true` lists only jobs still waiting on the AI or on you. */
     listIntakeJobs: ({ open = false, limit = 50 } = {}) => request('GET', `/intake/jobs?${new URLSearchParams({ open: String(open), limit: String(limit) })}`),
     getIntakeJob: (id) => request('GET', `/intake/jobs/${enc(id)}`),
-    createIntakeJobs: (photoIds, mode, occasionId = null) =>
-      request('POST', '/intake/jobs', { photo_ids: photoIds, mode, ...(occasionId ? { occasion_id: occasionId } : {}) }),
+    /** `barcode`: one photo of one item whose barcode the catalog didn't know; the job keeps the code. */
+    createIntakeJobs: (photoIds, mode, occasionId = null, barcode = null) =>
+      request('POST', '/intake/jobs', {
+        photo_ids: photoIds, mode, ...(occasionId ? { occasion_id: occasionId } : {}), ...(barcode ? { barcode } : {}),
+      }),
+
+    /** {status: found | not_found | unavailable, barcode, release, hints, message}. 422 for a code that isn't valid. */
+    lookupBarcode: (code) => request('POST', '/barcodes/lookup', { code }),
     /** 409 if already saved (another tab, a double tap): the error body's detail.job lists what was saved. */
     confirmIntakeJob: (id, items) => request('POST', `/intake/jobs/${enc(id)}/confirm`, { items }),
     discardIntakeJob: (id) => request('POST', `/intake/jobs/${enc(id)}/discard`),

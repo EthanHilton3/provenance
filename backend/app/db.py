@@ -46,6 +46,11 @@ class Rest:
     async def insert(self, table: str, rows: dict | list[dict]) -> list[dict]:
         return await self._call('POST', table, json=rows)
 
+    async def upsert(self, table: str, rows: dict | list[dict], on_conflict: str) -> list[dict]:
+        """INSERT ... ON CONFLICT (on_conflict) DO UPDATE: the row sent replaces the one there."""
+        return await self._call('POST', table, params={'on_conflict': on_conflict}, json=rows,
+                                prefer='resolution=merge-duplicates,return=minimal')
+
     async def update(self, table: str, params: dict, values: dict) -> list[dict]:
         return await self._call('PATCH', table, params=params, json=values)
 

@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from .auth import AuthUser, current_user
+from .barcodes import router as barcodes_router
 from .config import get_settings
 from .db import DbError
 from .intake import router as intake_router
@@ -55,6 +56,7 @@ def create_app() -> FastAPI:
     app.include_router(photos_router, prefix='/api')
     app.include_router(intake_router, prefix='/api')
     app.include_router(occasions_router, prefix='/api')
+    app.include_router(barcodes_router, prefix='/api')
     return app
 
 

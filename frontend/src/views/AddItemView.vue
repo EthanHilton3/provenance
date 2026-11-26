@@ -4,6 +4,7 @@
       <RouterLink to="/" class="btn btn-quiet btn-sm back" aria-label="Back to my things">‹ Back</RouterLink>
     </div>
     <h1>Add an item</h1>
+    <p v-if="barcode" class="notice notice-info small">Barcode {{ displayBarcode(barcode) }} is saved with this item.</p>
 
     <p v-if="loadError" class="notice notice-error" role="alert">{{ loadError }}</p>
 
@@ -40,18 +41,21 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import ItemForm from '../components/ItemForm.vue'
 import PhotoPicker from '../components/PhotoPicker.vue'
 import UploadList from '../components/UploadList.vue'
 import { api } from '../lib/backend'
+import { displayBarcode, parseBarcode } from '../lib/barcode'
 import { cleanDraft, loadCategories } from '../lib/categories'
 import { createBody, emptyDraft } from '../lib/item'
 import { forgetCover } from '../lib/photos'
 import { useUploads } from '../lib/uploads'
 
 const router = useRouter()
-const draft = ref(emptyDraft())
+// From a barcode the catalog didn't know (/scan): kept on the item until S12 makes shared releases from it.
+const barcode = parseBarcode(useRoute().query.barcode || '').code || ''
+const draft = ref({ ...emptyDraft(), attributes: barcode ? { barcode } : {} })
 const uploads = useUploads()
 const busy = ref(false)
 const error = ref('')
