@@ -12,6 +12,8 @@ if not LIVE:
         SUPABASE_ANON_KEY='anon-test',
         SUPABASE_SERVICE_ROLE_KEY='service-test',
         OPENAI_API_KEY='sk-test-not-a-real-key',  # never the real key from .env
+        TMDB_API_KEY='tmdbtestkey0000000000000000000000',
+        EMBEDDINGS_FAKE='false',
     )
 
 

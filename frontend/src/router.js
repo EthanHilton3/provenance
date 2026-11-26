@@ -10,6 +10,7 @@ const router = createRouter({
     { path: '/scan', name: 'scan', component: () => import('./views/ScanView.vue') },
     { path: '/intake', name: 'intake', component: () => import('./views/IntakeView.vue') },
     { path: '/intake/:id', name: 'review', component: () => import('./views/ReviewView.vue'), props: true, meta: { wide: true } },
+    { path: '/about', name: 'about', component: () => import('./views/AboutView.vue') },
     { path: '/signin', name: 'signin', component: () => import('./views/SignInView.vue'), meta: { public: true } },
     { path: '/:rest(.*)*', redirect: '/' },
   ],
