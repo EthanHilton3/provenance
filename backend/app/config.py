@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     supabase_anon_key: SecretStr
     # Backend only. Bypasses RLS: only for the shared catalog and the intake worker, never for user reads.
     supabase_service_role_key: SecretStr = SecretStr('')
-    # Not used until intake and catalog lookups exist.
+    # The intake worker's key (app/worker.py); the API never calls OpenAI. TMDB is for the catalog lookups (S12).
     openai_api_key: SecretStr = SecretStr('')
     tmdb_api_key: SecretStr = SecretStr('')
 

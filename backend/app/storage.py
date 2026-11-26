@@ -1,7 +1,8 @@
 """A thin Supabase Storage client for the private `photos` bucket.
 
-Always called with the signed-in user's own token, so the storage policies (own `<user id>/` prefix only) apply
-here exactly as Row Level Security applies in db.py. The service key is never used for photos.
+Called with the signed-in user's own token, so the storage policies (own `<user id>/` prefix only) apply here exactly
+as Row Level Security applies in db.py. The one exception is the intake worker (worker.py), which has no user token:
+it downloads with the service key, and only after checking the photo row and path belong to the job's owner.
 """
 from typing import Any
 
@@ -51,6 +52,19 @@ class Storage:
         if paths:
             await self._call('DELETE', f'object/{BUCKET}', json={'prefixes': paths})
 
+    async def download(self, path: str) -> bytes:
+        try:
+            resp = await self._client.get(f'{self._base}/object/{BUCKET}/{path}', headers=self._headers)
+        except httpx.HTTPError as e:
+            raise StorageError(503, {'message': 'Could not reach file storage'}) from e
+        if resp.status_code >= 400:
+            try:
+                body = resp.json()
+            except ValueError:
+                body = resp.text
+            raise StorageError(resp.status_code, body)
+        return resp.content
+
     async def sign(self, paths: list[str]) -> dict[str, str | None]:
         """Short-lived URLs for the paths this user may read; None for any that are missing or not theirs."""
         replies = await self._call('POST', f'object/sign/{BUCKET}', json={'expiresIn': SIGNED_URL_SECONDS, 'paths': paths})
@@ -60,3 +74,11 @@ class Storage:
 
 def user_storage(client: httpx.AsyncClient, token: str) -> Storage:
     return Storage(client, get_settings().supabase_anon_key.get_secret_value(), token)
+
+
+def service_storage(client: httpx.AsyncClient) -> Storage:
+    """Bypasses the bucket policies. Only the intake worker uses it, after its owner checks."""
+    key = get_settings().supabase_service_role_key.get_secret_value()
+    if not key:
+        raise RuntimeError('SUPABASE_SERVICE_ROLE_KEY is not set')
+    return Storage(client, key, key)

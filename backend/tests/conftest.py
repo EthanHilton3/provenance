@@ -11,6 +11,7 @@ if not LIVE:
         SUPABASE_URL='https://test.supabase.invalid',
         SUPABASE_ANON_KEY='anon-test',
         SUPABASE_SERVICE_ROLE_KEY='service-test',
+        OPENAI_API_KEY='sk-test-not-a-real-key',  # never the real key from .env
     )
 
 

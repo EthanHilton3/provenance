@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from .auth import AuthUser, current_user
 from .config import get_settings
 from .db import DbError
+from .intake import router as intake_router
 from .items import router as items_router
 from .photos import router as photos_router
 
@@ -51,6 +52,7 @@ def create_app() -> FastAPI:
 
     app.include_router(items_router, prefix='/api')
     app.include_router(photos_router, prefix='/api')
+    app.include_router(intake_router, prefix='/api')
     return app
 
 
