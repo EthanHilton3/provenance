@@ -19,6 +19,17 @@
       <span class="chev" aria-hidden="true">›</span>
     </RouterLink>
 
+    <RouterLink to="/scan" class="intake card">
+      <span class="ic" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M7 9v6M10 9v6M13 9v6M16 9v6"/></svg>
+      </span>
+      <span class="text">
+        <span class="name">Scan a barcode</span>
+        <span class="sub">Movies, games and books: the card appears at once</span>
+      </span>
+      <span class="chev" aria-hidden="true">›</span>
+    </RouterLink>
+
     <p v-if="error" class="notice notice-error" role="alert">
       {{ error }} <button class="btn btn-quiet btn-sm" @click="reload">Try again</button>
     </p>

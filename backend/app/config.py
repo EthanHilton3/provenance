@@ -19,6 +19,14 @@ class Settings(BaseSettings):
     openai_api_key: SecretStr = SecretStr('')
     tmdb_api_key: SecretStr = SecretStr('')
 
+    # UPCitemdb's free trial endpoint (no key): about 100 lookups a day for the whole app. The daily budget leaves
+    # 10 for testing by hand; the per-user share stops one user from spending it; the per-minute cap stays under its
+    # undocumented per-minute limit (the barcode test paced calls 11 s apart and never hit it).
+    upcitemdb_url: str = 'https://api.upcitemdb.com/prod/trial/lookup'
+    upc_daily_budget: int = 90
+    upc_per_user_daily: int = 20
+    upc_per_minute: int = 5
+
     cors_origins: str = 'http://localhost:5173'
 
     @property

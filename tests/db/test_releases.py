@@ -1,11 +1,10 @@
 """(3) Two people scanning the same new barcode at once end up with one shared release (ON CONFLICT)."""
-import random
 import threading
 
 import pytest
 from psycopg import errors
 
-from conftest import as_role, connect
+from conftest import as_role, connect, random_upc
 
 FIND_OR_CREATE = """
 insert into releases (barcode, title, created_by) values (%(barcode)s, %(title)s, %(user)s)
@@ -26,7 +25,7 @@ def find_or_create(conn, barcode: str, title: str, user) -> tuple:
 @pytest.fixture
 def upc(admin):
     """A random UPC-A in the 2xx restricted-circulation range (never a real product); cleaned up after."""
-    code = '2' + ''.join(random.choices('0123456789', k=11))
+    code = random_upc()
     yield code
     admin.execute("delete from releases where barcode = '0' || %s", (code,))
 

@@ -78,6 +78,8 @@ onMounted(async () => {
   } else {
     const made = cardToDraft(card.value, fields.value, { occasionId: props.job.occasion_id || '' })
     draft.value = made.draft
+    // "Photograph the box" after a barcode miss: the job kept the code; it goes on the item.
+    if (props.job.barcode) draft.value.attributes = { ...draft.value.attributes, barcode: props.job.barcode }
     flags.value = made.flags
     question.value = made.question
   }

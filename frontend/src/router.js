@@ -7,6 +7,7 @@ const router = createRouter({
     { path: '/', name: 'items', component: () => import('./views/ItemsView.vue') },
     { path: '/items/new', name: 'add', component: () => import('./views/AddItemView.vue') },
     { path: '/items/:id', name: 'item', component: () => import('./views/ItemDetailView.vue'), props: true },
+    { path: '/scan', name: 'scan', component: () => import('./views/ScanView.vue') },
     { path: '/intake', name: 'intake', component: () => import('./views/IntakeView.vue') },
     { path: '/intake/:id', name: 'review', component: () => import('./views/ReviewView.vue'), props: true, meta: { wide: true } },
     { path: '/signin', name: 'signin', component: () => import('./views/SignInView.vue'), meta: { public: true } },
