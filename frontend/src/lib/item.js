@@ -29,7 +29,8 @@ export const ITEM_FIELDS = [
   ['source', 'Where from'],
   ['notes', 'Notes'],
 ]
-const NULLABLE = new Set(['condition_grade', 'acquired_on', 'source', 'notes', 'franchise', 'brand', 'signed_by'])
+// sealed: true, false, or null for "not recorded" (S10: the AI often can't tell, and a guess must not become a fact).
+const NULLABLE = new Set(['condition_grade', 'acquired_on', 'source', 'notes', 'franchise', 'brand', 'signed_by', 'sealed'])
 /** The columns in the form's "More details" section. */
 export const MORE_DETAILS = ['franchise', 'brand', 'signed_by']
 
@@ -44,14 +45,14 @@ export function same(a, b) {
 
 /** A blank form for a new item. */
 export function emptyDraft(categoryId = '') {
-  return { name: '', category_id: categoryId, franchise: '', brand: '', signed_by: '', condition_grade: '', sealed: false,
+  return { name: '', category_id: categoryId, franchise: '', brand: '', signed_by: '', condition_grade: '', sealed: null,
     acquired_on: '', source: '', notes: '', attributes: {} }
 }
 
 /** An editable copy of a saved item. */
 export function draftFrom(item) {
   const d = {}
-  for (const [k] of ITEM_FIELDS) d[k] = item[k] ?? (k === 'sealed' ? false : '')
+  for (const [k] of ITEM_FIELDS) d[k] = item[k] ?? (k === 'sealed' ? null : '')
   d.attributes = { ...(item.attributes || {}) }
   return d
 }
@@ -127,6 +128,7 @@ export function display(key, value, { categoryName } = {}) {
   if (isEmpty(value)) return '—'
   if (key === 'category_id') return categoryName ? categoryName(value) : value
   if (key === 'condition_grade') return CONDITION_LABEL[value] || value
+  if (key === 'sealed') return value ? 'Sealed' : 'Opened'
   if (typeof value === 'boolean') return value ? 'Yes' : 'No'
   if (key === 'acquired_on') {
     const d = new Date(`${value}T00:00:00`)

@@ -169,17 +169,29 @@ async def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(prog='python -m app.worker', description='Provenance intake worker')
     ap.add_argument('--once', action='store_true', help='drain the queue, then exit')
     ap.add_argument('--poll', type=float, default=POLL_SECONDS, help='seconds between checks when the queue is empty')
+    ap.add_argument('--fake', action='store_true',
+                    help='canned answers instead of OpenAI (app/fake_ai.py); local Supabase only, no cost')
     args = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s: %(message)s')
     logging.getLogger('httpx').setLevel(logging.WARNING)  # its INFO lines are one per request
 
-    key = get_settings().openai_api_key.get_secret_value()
-    if not key:
+    settings = get_settings()
+    if args.fake:
+        # The worker claims ANY queued job, so canned answers must never reach a real queue.
+        if not settings.supabase_url.startswith(('http://127.0.0.1', 'http://localhost')):
+            raise SystemExit('--fake runs against local Supabase only')
+    elif not settings.openai_api_key.get_secret_value():
         raise SystemExit('OPENAI_API_KEY is not set')
     async with httpx.AsyncClient(timeout=30) as http:
         db = service_db(http)
-        worker = Worker(db, service_storage(http), OpenAIClient(http, key), await load_categories(db))
-        logger.info('worker %s started: %s categories, lease %ss', worker.name, len(worker.categories.ids), worker.lease_seconds)
+        if args.fake:
+            from .fake_ai import FakeAIClient
+            ai = FakeAIClient()
+        else:
+            ai = OpenAIClient(http, settings.openai_api_key.get_secret_value())
+        worker = Worker(db, service_storage(http), ai, await load_categories(db))
+        logger.info('worker %s started%s: %s categories, lease %ss', worker.name, ' with the FAKE model' if args.fake else '',
+                    len(worker.categories.ids), worker.lease_seconds)
         await worker.run_forever(poll_seconds=args.poll, stop_when_idle=args.once)
 
 

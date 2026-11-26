@@ -173,7 +173,7 @@ erDiagram
 
 </details>
 
-ERD note: the picture above predates the category redesign (Nov 25); the text version is current. It adds `categories.description` and the `items` columns `franchise`, `brand` and `signed_by`.
+ERD note: the picture above predates the category redesign (Nov 25); the text version is current. It adds `categories.description` and the `items` columns `franchise`, `brand` and `signed_by`. S10 (Nov 26) adds `items.intake_job_id` (a group photo yields many items, so the link is on the item), lets `items.sealed` be null ("not recorded", because the models often can't tell), and adds a `discarded` job status; each item from a group photo gets its own copy of the photo file.
 
 An item points to at most one release, and a release lists the works it contains, so a box set like the Lord of the Rings trilogy is one release with three works. Unique things (the scarecrow, a family photo) have no release and live on their category's fields alone.
 
@@ -329,7 +329,7 @@ The plan is 37.5 hours over 19 working days, plus about 3 hours already spent on
 
 **Week 3: AI intake and releases**
 
-- [ ] **S10: Mon Nov 30** (2.5 h): confirmation card UI with the one-tap follow-up question and an occasion picker; batch intake ("these are all from Christmas 2025"); group-photo mode: one whole photo to Sol, a list of items back, one confirmation grid, no tiling (see Group photos in the feasibility evidence)
+- [x] **S10: Mon Nov 30** (2.5 h): confirmation card UI with the one-tap follow-up question and an occasion picker; batch intake ("these are all from Christmas 2025"); group-photo mode: one whole photo to Sol, a list of items back, one confirmation grid, no tiling (see Group photos in the feasibility evidence)
 - [ ] **S11: Tue Dec 1** (2.5 h): barcode scan in the browser; release lookup by barcode; UPC API with `catalog_cache`
 - [ ] **S12: Wed Dec 2** (2.5 h): catalog service (TMDB, Open Library) with fallbacks; user-created releases; pgvector duplicate check
 - [ ] **S13: Thu Dec 3** (1.5 h): **milestone: intake end to end** on my 26 items; log accuracy against the feasibility test

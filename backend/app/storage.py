@@ -47,6 +47,10 @@ class Storage:
         """Fails if the path already exists (no upsert): every photo gets a new id."""
         await self._call('POST', f'object/{BUCKET}/{path}', content=data, headers={'Content-Type': 'image/jpeg'})
 
+    async def copy(self, source: str, destination: str) -> None:
+        """Server-side copy inside the bucket (no download). As the user, both paths must be in their own folder."""
+        await self._call('POST', 'object/copy', json={'bucketId': BUCKET, 'sourceKey': source, 'destinationKey': destination})
+
     async def remove(self, paths: list[str]) -> None:
         """Deletes the files. A path that is already gone is not an error, so a retry after a half-finished delete works."""
         if paths:

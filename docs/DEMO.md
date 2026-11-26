@@ -33,5 +33,58 @@ Said out loud if asked; none of these block the flow.
 - **No search or filter on My things**, and no "all Video Games" roll-up: groups are the leaf categories only. The API can already filter by category.
 - **The first photo is the thumbnail**; there is no reorder or "make cover".
 - **Deleting is permanent** (no trash). On the hosted project a photo you already viewed can keep loading for a short while after deleting it (CDN cache; see the README).
-- **No AI intake, barcode scan, collections or occasions yet** (S9 onward).
+- **No barcode scan, collections or occasion views yet** (S11 onward). AI intake from photos is below (S10).
 - **Not covered by this run:** the phone camera button, HEIC photos from a real phone, and the layout at phone width. The walk used a desktop browser and generated JPEGs through the file picker. The phone was checked in S7, before the category redesign.
+
+# AI intake demo (S10)
+
+About five minutes: a batch of single photos, one shelf photo, the follow-up questions, and saving twice from two tabs. Written from a run against local Supabase with the fake model, so it costs nothing and is repeatable.
+
+## Before the demo
+
+1. Local Supabase running (`npx supabase start`) with every migration applied (`npx supabase migration up`).
+2. Point everything at the local stack, not the cloud project in `.env`: export `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` from `npx supabase status -o env` (`API_URL`, `ANON_KEY`, `SERVICE_ROLE_KEY`), the same two as `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`, and `API_TARGET=http://127.0.0.1:8001`. Environment variables win over the `.env` files.
+3. Backend: `cd backend && ../.venv/Scripts/python -m uvicorn app.main:app --port 8001`.
+4. Worker, fake model: `cd backend && ../.venv/Scripts/python -m app.worker --fake`. It refuses to start unless Supabase is local. For the real model, leave out `--fake` (it needs `OPENAI_API_KEY`; about $0.0003 a single photo with Luna, about $0.03 a shelf with Sol).
+5. Frontend: `cd frontend && npm run dev`, open http://localhost:5174.
+6. Photos. The fake model answers by the photo's main colour: **red** = a Switch game (sure), **green** = a film on disc (unsure, asks "4K UHD or Blu-ray?"), **blue** = a mug (low confidence), **nearly black** = the AI fails (3 tries, about 90 seconds). In "Many items" mode any photo gives the same six-item shelf. Any plain coloured JPEG, PNG or HEIC works.
+
+## Steps
+
+1. **Batch.** My things › Add from photos. Choose a red, a green, a blue and a black photo. Keep "One item". In "All from an occasion" pick "+ New occasion…", type Christmas 2025, Add occasion. Upload and read 4 photos. *Point out: one job per photo; the list checks for progress on its own and stops checking once nothing is waiting.*
+2. **The sure card.** Review the game. The photo sits beside the form; Platform is already Switch, Region US. Tap "Complete in box" in the question box. Sealed shows Opened with "AI guess": sealed is never shown as certain. The occasion is Christmas 2025. Save item: the next card opens.
+3. **The unsure card.** On the mug, the name is marked "The AI was not sure what this is", and the AI's own question is shown as written. Change the name: the mark goes away.
+4. **Two tabs.** Open the same mug card in a second tab, Save there, then Save in the first: "Already saved" with a link to the one item. Nothing is duplicated.
+5. **Follow-ups and leaving.** On the film, the AI asks "4K UHD or Blu-ray?" and under it are one-tap Sealed and Format answers. Tap Opened and Blu-ray, go back to Photos, open the card again: the answers are still there (kept on this device until you save or discard). Save.
+6. **Failed photo.** The black photo ends "Gave up after 3 tries" with Try again, Add by hand and Discard. Add by hand opens a blank card with the photo; name it, pick a category, Save.
+7. **Shelf.** Switch to "Many items", upload one photo, Review. Six rows, each with a category from what kind of thing it is (manga → Books › Manga, game → Video Games › Games…), "Check volumes", "Check edition" and "Check title" marks, and one-tap Sealed answers. "The AI also saw 2 things it couldn't identify".
+   - The box set row says "Pick a category" and is left out until you choose one: tap it, search `video game`, pick Games.
+   - Untick the amiibo. Open Trigun: Volumes says "vols 1 and 2"; correct it. Add an item the AI missed: a cologne bottle in Other.
+   - Save the selected items. Each item gets its own copy of the shelf photo.
+8. **Discard.** Upload another shelf, Review, Discard: the photo is deleted and the list moves on.
+
+## Group-photo kind → category
+
+| The model's kind | Category (changeable per row) |
+| --- | --- |
+| novel or book, art book or guide | Books (general) |
+| manga or comic volume | Books › Manga |
+| video game | Video Games › Games |
+| movie or TV disc set | Movies & TV › Discs |
+| amiibo or figure | Toys › Figures |
+| trading card or card product | Games & Puzzles › Trading card games |
+| board game or puzzle | Games & Puzzles › Board games |
+| toy or building set | Toys (general) |
+| wall art or decor | Home Decor (general) |
+| electronics or accessory | Electronics (general) |
+| box set or slipcase set | none: you choose |
+| other | Other |
+
+## Known rough edges (S10)
+
+- **A run of volumes stays one item.** "vols 1-3" is kept as text in a Volumes detail beside the number field Volume; splitting a run into one item per volume is not built.
+- **Photos uploaded together appear in any order** in the waiting list: a batch's jobs share one creation time.
+- **After a tap, the next question moves under your finger**, so a fast double tap can answer two questions.
+- **Photos that never became jobs** (the job request failed and you left before Try again) stays stored with no item and no job; nothing shows or deletes it yet.
+- **Single photos can't go to a general category** such as "Books (general)" for a novel: the S9 single-item prompt offers leaf categories only. Group rows can.
+- **Not covered by the S10 walk:** a real phone (the 390 px layout was checked in a desktop browser), the camera button, a real iPhone HEIC (a HEIC generated by pillow-heif uploaded and converted fine), light mode, and the real model.

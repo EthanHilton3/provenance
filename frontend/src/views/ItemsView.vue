@@ -8,6 +8,17 @@
       </p>
     </div>
 
+    <RouterLink to="/intake" class="intake card" :class="{ pending: toReview }">
+      <span class="ic" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+      </span>
+      <span class="text">
+        <span class="name">Add from photos</span>
+        <span class="sub">{{ toReview ? `${toReview} ${toReview === 1 ? 'photo' : 'photos'} waiting for you` : 'The AI fills in the card; you check it' }}</span>
+      </span>
+      <span class="chev" aria-hidden="true">›</span>
+    </RouterLink>
+
     <p v-if="error" class="notice notice-error" role="alert">
       {{ error }} <button class="btn btn-quiet btn-sm" @click="reload">Try again</button>
     </p>
@@ -83,7 +94,16 @@ async function fetchPage(cursor) {
 }
 const reload = () => fetchPage(null)
 const loadMore = () => fetchPage(next.value)
-onMounted(reload)
+
+// Photos from earlier visits still waiting for a review or a retry, so unfinished intake is never forgotten.
+const toReview = ref(0)
+async function countIntake() {
+  try {
+    const open = await api.listIntakeJobs({ open: true, limit: 100 })
+    toReview.value = open.filter((j) => j.status === 'needs_review' || j.status === 'failed').length
+  } catch { /* the list works without it */ }
+}
+onMounted(() => { reload(); countIntake() })
 
 const groups = computed(() => {
   const byCat = new Map()
@@ -138,6 +158,11 @@ const vVisible = {
 
 <style scoped>
 .head { display: grid; gap: 4px; }
+.intake { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 8px 16px; color: inherit; text-decoration: none; }
+.intake:hover { background: var(--surface-2); }
+.intake.pending { border-color: var(--accent); }
+.intake.pending .sub { color: var(--accent); font-weight: 600; }
+.ic { display: grid; place-items: center; width: 40px; height: 40px; flex: none; border-radius: 10px; background: var(--accent-soft); color: var(--accent); }
 .empty { display: grid; gap: 12px; justify-items: center; text-align: center; padding: 32px 20px; color: var(--muted); }
 .empty h2 { color: var(--text); font-family: var(--font-title); font-size: 1.25rem; }
 .empty p { max-width: 34ch; }

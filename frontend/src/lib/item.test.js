@@ -49,10 +49,10 @@ test('a number typed as text matches the saved number', () => {
   assert.equal(buildPatch(item, draft), null)
 })
 
-test('createBody drops blanks', () => {
+test('createBody drops blanks; sealed starts as not recorded', () => {
   const d = { ...emptyDraft('c1'), name: 'Lamp', attributes: { brand: '', model: 'X1' } }
   assert.deepEqual(createBody(d), {
-    name: 'Lamp', category_id: 'c1', franchise: null, brand: null, signed_by: null, condition_grade: null, sealed: false,
+    name: 'Lamp', category_id: 'c1', franchise: null, brand: null, signed_by: null, condition_grade: null, sealed: null,
     acquired_on: null, source: null, notes: null, attributes: { model: 'X1' },
   })
 })

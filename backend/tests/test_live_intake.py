@@ -239,3 +239,100 @@ def test_a_crash_on_the_last_attempt_ends_failed_not_stuck(client, users, upload
 
     row = asyncio.run(with_worker(scenario, lease_seconds=1))
     assert row['status'] == 'failed' and 'worker stopped' in row['error'] and row['locked_by'] is None
+
+
+# --- S10: confirm, discard, retry through the real API, Storage and database ----------------------------------
+
+def work(fake=None, **kw):
+    async def scenario(make_worker, db):
+        await make_worker('s10').run_forever(stop_when_idle=True)
+    asyncio.run(with_worker(scenario, fake, **kw))
+
+
+def a_category(client, user, path=('Books', 'Manga')):
+    rows = client.get('/api/categories', headers=user['headers']).json()
+    parent = next(c for c in rows if c['name'] == path[0] and not c['parent_id'])
+    return next(c for c in rows if c['name'] == path[1] and c['parent_id'] == parent['id'])['id']
+
+
+def test_group_confirm_gives_each_item_its_own_photo_once(client, users, upload):
+    a, b = users
+    jid, = queue(client, a, upload(1), 'group')
+    work(FakeOpenAI((200, reply(SCENE))))
+    cat = a_category(client, a)
+    body = {'items': [{'name': 'One Piece', 'category_id': cat, 'sealed': None, 'attributes': {'volume': '1-3'}},
+                      {'name': 'Trigun Maximum', 'category_id': cat, 'sealed': False}]}
+
+    assert client.post(f'/api/intake/jobs/{jid}/confirm', headers=b['headers'], json=body).status_code == 404
+    r = client.post(f'/api/intake/jobs/{jid}/confirm', headers=a['headers'], json=body)
+    assert r.status_code == 200, r.text
+    items = r.json()['items']
+    assert [i['name'] for i in items] == ['One Piece', 'Trigun Maximum'] and items[0]['sealed'] is None
+    assert all(i['intake_job_id'] == jid for i in items) and r.json()['job']['status'] == 'done'
+    try:
+        # Each item has exactly one photo, and both files really exist (the copy was made in Storage).
+        blobs = []
+        for it in items:
+            photos = client.get(f'/api/items/{it["id"]}/photos', headers=a['headers']).json()
+            assert len(photos) == 1 and photos[0]['url']
+            got = httpx.get(photos[0]['url'])
+            assert got.status_code == 200 and got.content[:2] == b'\xff\xd8'
+            blobs.append(got.content)
+        assert blobs[0] == blobs[1]
+        # Confirming again, from this or another tab, saves nothing more and says what was saved.
+        again = client.post(f'/api/intake/jobs/{jid}/confirm', headers=a['headers'], json=body)
+        assert again.status_code == 409
+        assert {i['id'] for i in again.json()['detail']['job']['items']} == {i['id'] for i in items}
+        mine = client.get('/api/items', headers=a['headers']).json()
+        assert sum(1 for i in mine if i.get('intake_job_id') == jid) == 2
+    finally:
+        for it in items:  # deleting an item removes its own file; the other item's photo is untouched until its turn
+            assert client.delete(f'/api/items/{it["id"]}', headers=a['headers']).status_code == 204
+
+
+def test_discard_deletes_the_photo_and_keeps_the_job(client, users, upload):
+    a, _ = users
+    pid, = upload(1)
+    jid, = queue(client, a, [pid])
+    work()
+    assert client.post(f'/api/intake/jobs/{jid}/discard', headers=a['headers']).status_code == 204
+    job = client.get(f'/api/intake/jobs/{jid}', headers=a['headers']).json()
+    assert job['status'] == 'discarded' and job['photo_ids'] == []
+    assert client.post(f'/api/intake/jobs/{jid}/discard', headers=a['headers']).status_code == 204  # idempotent
+    assert client.post(f'/api/intake/jobs/{jid}/confirm', headers=a['headers'],
+                       json={'items': [{'name': 'x', 'category_id': a_category(client, a)}]}).status_code == 409
+
+    async def file_gone():
+        async with httpx.AsyncClient() as http:
+            rows = await service_db(http).select('photos', {'select': 'id', 'id': f'eq.{pid}'})
+            try:
+                await service_storage(http).download(f'{a["id"]}/{pid}.jpg')
+                return rows, False
+            except Exception:  # noqa: BLE001 - any refusal means the file is not there
+                return rows, True
+    rows, gone = asyncio.run(file_gone())
+    assert rows == [] and gone
+
+
+def test_failed_job_can_be_retried_or_added_by_hand(client, users, upload):
+    a, _ = users
+    retry_me, by_hand = queue(client, a, upload(2))
+
+    async def drain(make_worker, db):
+        return await settle(make_worker('s10'), db, [retry_me, by_hand])
+    asyncio.run(with_worker(drain, FakeOpenAI((200, reply('not json'))), backoff_seconds=0.1))
+    for jid in (retry_me, by_hand):
+        assert client.get(f'/api/intake/jobs/{jid}', headers=a['headers']).json()['status'] == 'failed'
+
+    r = client.post(f'/api/intake/jobs/{retry_me}/retry', headers=a['headers'])
+    assert r.status_code == 200 and r.json()['status'] == 'queued' and r.json()['attempts'] == 0
+    work(FakeOpenAI((200, reply(CARD))))
+    assert client.get(f'/api/intake/jobs/{retry_me}', headers=a['headers']).json()['status'] == 'needs_review'
+
+    r = client.post(f'/api/intake/jobs/{by_hand}/confirm', headers=a['headers'],
+                    json={'items': [{'name': 'Typed in by hand', 'category_id': a_category(client, a)}]})
+    assert r.status_code == 200, r.text
+    item = r.json()['items'][0]
+    assert len(client.get(f'/api/items/{item["id"]}/photos', headers=a['headers']).json()) == 1
+    client.delete(f'/api/items/{item["id"]}', headers=a['headers'])
+    client.post(f'/api/intake/jobs/{retry_me}/discard', headers=a['headers'])

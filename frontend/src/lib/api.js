@@ -164,5 +164,20 @@ export function createApi({ getToken, fetch: fetchFn = (...a) => globalThis.fetc
     listPhotos: (itemId) => request('GET', `/items/${enc(itemId)}/photos`),
     uploadPhoto: (itemId, file, onProgress) => upload(`/items/${enc(itemId)}/photos`, file, onProgress),
     deletePhoto: (photoId) => request('DELETE', `/photos/${enc(photoId)}`),
+    /** A photo with no item yet, for intake. */
+    uploadIntakePhoto: (file, onProgress) => upload('/photos', file, onProgress),
+
+    listOccasions: () => request('GET', '/occasions'),
+    createOccasion: (occasion) => request('POST', '/occasions', occasion),
+
+    /** `open: true` lists only jobs still waiting on the AI or on you. */
+    listIntakeJobs: ({ open = false, limit = 50 } = {}) => request('GET', `/intake/jobs?${new URLSearchParams({ open: String(open), limit: String(limit) })}`),
+    getIntakeJob: (id) => request('GET', `/intake/jobs/${enc(id)}`),
+    createIntakeJobs: (photoIds, mode, occasionId = null) =>
+      request('POST', '/intake/jobs', { photo_ids: photoIds, mode, ...(occasionId ? { occasion_id: occasionId } : {}) }),
+    /** 409 if already saved (another tab, a double tap): the error body's detail.job lists what was saved. */
+    confirmIntakeJob: (id, items) => request('POST', `/intake/jobs/${enc(id)}/confirm`, { items }),
+    discardIntakeJob: (id) => request('POST', `/intake/jobs/${enc(id)}/discard`),
+    retryIntakeJob: (id) => request('POST', `/intake/jobs/${enc(id)}/retry`),
   }
 }
