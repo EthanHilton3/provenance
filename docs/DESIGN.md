@@ -330,7 +330,7 @@ The plan is 37.5 hours over 19 working days, plus about 3 hours already spent on
 **Week 3: AI intake and releases**
 
 - [x] **S10: Mon Nov 30** (2.5 h): confirmation card UI with the one-tap follow-up question and an occasion picker; batch intake ("these are all from Christmas 2025"); group-photo mode: one whole photo to Sol, a list of items back, one confirmation grid, no tiling (see Group photos in the feasibility evidence)
-- [ ] **S11: Tue Dec 1** (2.5 h): barcode scan in the browser; release lookup by barcode; UPC API with `catalog_cache`
+- [x] **S11: Tue Dec 1** (2.5 h): barcode scan in the browser; release lookup by barcode; UPC API with `catalog_cache`
 - [ ] **S12: Wed Dec 2** (2.5 h): catalog service (TMDB, Open Library) with fallbacks; user-created releases; pgvector duplicate check
 - [ ] **S13: Thu Dec 3** (1.5 h): **milestone: intake end to end** on my 26 items; log accuracy against the feasibility test
 - [ ] **S14: Fri Dec 4** (2.5 h): collections, occasions and people views ("everything from our wedding"); sharing by link
