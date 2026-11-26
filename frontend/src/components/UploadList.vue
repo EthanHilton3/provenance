@@ -18,12 +18,12 @@
 </template>
 
 <script setup>
-defineProps({ list: { type: Array, required: true } })
+const props = defineProps({ list: { type: Array, required: true }, waitingText: { type: String, default: 'Uploads after you save' } })
 defineEmits(['remove'])
 
 function statusText(e) {
   switch (e.status) {
-    case 'waiting': return 'Uploads after you save'
+    case 'waiting': return props.waitingText
     case 'uploading': return `Uploading… ${Math.round(e.progress * 100)}%`
     case 'processing': return 'Processing…'
     case 'done': return 'Uploaded'

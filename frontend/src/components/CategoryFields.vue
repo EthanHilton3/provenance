@@ -21,12 +21,12 @@
 
     <template v-if="editable">
       <template v-for="f in shown" :key="f.key">
-        <label v-if="f.type === 'boolean'" class="check">
+        <label v-if="f.type === 'boolean'" class="check" :class="{ flagged: flags['attributes.' + f.key] }">
           <input type="checkbox" :checked="modelValue[f.key] === true" @change="set(f.key, $event.target.checked)" />
           <span>{{ f.label }}</span>
           <span v-if="errors['attributes.' + f.key]" class="field-error" role="alert">{{ errors['attributes.' + f.key] }}</span>
         </label>
-        <label v-else class="field">
+        <label v-else class="field" :class="{ flagged: flags['attributes.' + f.key] }">
           <span>{{ f.label }}</span>
           <select v-if="f.type === 'choice'" class="input" :value="modelValue[f.key] ?? ''" @change="set(f.key, $event.target.value)">
             <option value="">—</option>
@@ -35,6 +35,7 @@
           <input v-else-if="f.type === 'number'" class="input" type="number" inputmode="decimal" step="any"
             :value="modelValue[f.key] ?? ''" @input="setNumber(f.key, $event.target.value)" />
           <input v-else class="input" type="text" :value="modelValue[f.key] ?? ''" @input="set(f.key, $event.target.value)" />
+          <span v-if="flags['attributes.' + f.key]" class="flag-note">{{ flags['attributes.' + f.key] }}</span>
           <span v-if="errors['attributes.' + f.key]" class="field-error" role="alert">{{ errors['attributes.' + f.key] }}</span>
         </label>
       </template>
@@ -45,11 +46,12 @@
             <input type="checkbox" :checked="v" @change="set(k, $event.target.checked)" />
             <span>{{ labelOf(k) }}</span>
           </label>
-          <label v-else class="field">
+          <label v-else class="field" :class="{ flagged: flags['attributes.' + k] }">
             <span>{{ labelOf(k) }}</span>
             <input v-if="typeof v === 'number'" class="input" type="number" inputmode="decimal" step="any" :value="v"
               @input="setNumber(k, $event.target.value)" />
             <input v-else class="input" type="text" :value="v" @input="set(k, $event.target.value)" />
+            <span v-if="flags['attributes.' + k]" class="flag-note">{{ flags['attributes.' + k] }}</span>
             <span v-if="errors['attributes.' + k]" class="field-error" role="alert">{{ errors['attributes.' + k] }}</span>
           </label>
         </template>
@@ -75,6 +77,7 @@ const props = defineProps({
   modelValue: { type: Object, default: () => ({}) },
   editable: { type: Boolean, default: false },
   errors: { type: Object, default: () => ({}) },
+  flags: { type: Object, default: () => ({}) }, // values the AI proposed to check, keyed like errors (lib/intake.js)
 })
 const emit = defineEmits(['update:modelValue', 'fields'])
 

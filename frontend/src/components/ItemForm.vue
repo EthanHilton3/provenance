@@ -1,29 +1,30 @@
 <!-- The fields you fill in by hand, shared by Add and Edit. The category's own fields come from CategoryFields. -->
 <template>
   <div class="stack">
-    <label class="field">
+    <label class="field" :class="{ flagged: flags.name }">
       <span>Name</span>
       <input class="input" :value="draft.name" required maxlength="300" placeholder="e.g. Spirited Away, 4K steelbook"
         @input="patch({ name: $event.target.value })" />
+      <span v-if="flags.name" class="flag-note">{{ flags.name }}</span>
       <span v-if="errors.name" class="field-error" role="alert">{{ errors.name }}</span>
     </label>
 
     <CategoryPicker :model-value="draft.category_id" @update:model-value="patch({ category_id: $event })" />
 
-    <CategoryFields v-if="draft.category_id" :category-id="draft.category_id" :model-value="draft.attributes" :errors="errors" editable
-      @update:model-value="patch({ attributes: $event })" />
+    <CategoryFields v-if="draft.category_id" :category-id="draft.category_id" :model-value="draft.attributes" :errors="errors"
+      :flags="flags" editable @update:model-value="patch({ attributes: $event })" @fields="$emit('fields', $event)" />
 
     <!-- On every item, whatever the category: columns, not category fields. Open when one is already filled in. -->
     <details class="more" :open="moreOpen" @toggle="moreOpen = $event.target.open">
       <summary>More details <span class="muted small">franchise, brand, signed by</span></summary>
       <div class="stack more-body">
-        <label class="field">
+        <label class="field" :class="{ flagged: flags.franchise }">
           <span>Franchise / series</span>
           <input class="input" :value="draft.franchise || ''" maxlength="300" placeholder="e.g. Zelda, Star Wars"
             @input="patch({ franchise: $event.target.value })" />
           <span v-if="errors.franchise" class="field-error" role="alert">{{ errors.franchise }}</span>
         </label>
-        <label class="field">
+        <label class="field" :class="{ flagged: flags.brand }">
           <span>Brand / maker</span>
           <input class="input" :value="draft.brand || ''" maxlength="300" placeholder="e.g. Nintendo, LEGO, Pyrex"
             @input="patch({ brand: $event.target.value })" />
@@ -46,10 +47,17 @@
       </select>
     </label>
 
-    <label class="check">
-      <input type="checkbox" :checked="draft.sealed" @change="patch({ sealed: $event.target.checked })" />
-      <span>Still sealed</span>
-    </label>
+    <!-- Three answers, because "not recorded" is real: the AI often can't tell, and a guess must not become a fact. -->
+    <div class="field" role="radiogroup" :aria-labelledby="`${uid}-sealed`">
+      <span :id="`${uid}-sealed`" class="label">Sealed?</span>
+      <div class="seg" :class="{ flagged: flags.sealed }">
+        <label v-for="[v, label] in SEALED" :key="label">
+          <input type="radio" :name="`${uid}-sealed`" :checked="draft.sealed === v" @change="patch({ sealed: v })" />
+          {{ label }}
+        </label>
+      </div>
+      <span v-if="flags.sealed" class="flag-note">{{ flags.sealed }}</span>
+    </div>
 
     <div class="two">
       <label class="field">
@@ -79,8 +87,15 @@ import CategoryFields from './CategoryFields.vue'
 import CategoryPicker from './CategoryPicker.vue'
 
 // errors: the API's validation errors by field name (lib/api.js fieldErrorsOf), shown next to the input.
-const props = defineProps({ draft: { type: Object, required: true }, errors: { type: Object, default: () => ({}) } })
-const emit = defineEmits(['update:draft'])
+// flags: values the AI proposed but may have wrong, keyed the same way (lib/intake.js); each shows why.
+const props = defineProps({
+  draft: { type: Object, required: true },
+  errors: { type: Object, default: () => ({}) },
+  flags: { type: Object, default: () => ({}) },
+})
+const emit = defineEmits(['update:draft', 'fields'])
+const uid = `if${Math.random().toString(36).slice(2, 8)}`
+const SEALED = [[null, 'Not recorded'], [true, 'Sealed'], [false, 'Opened']]
 const patch = (changes) => emit('update:draft', { ...props.draft, ...changes })
 
 const moreOpen = ref(MORE_DETAILS.some((k) => String(props.draft[k] ?? '').trim()))

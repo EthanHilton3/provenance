@@ -173,7 +173,7 @@ erDiagram
 
 </details>
 
-ERD note: the picture above predates the category redesign (Nov 25); the text version is current. It adds `categories.description` and the `items` columns `franchise`, `brand` and `signed_by`.
+ERD note: the picture above predates the category redesign (Nov 25); the text version is current. It adds `categories.description` and the `items` columns `franchise`, `brand` and `signed_by`. S10 (Nov 26) adds `items.intake_job_id` (a group photo yields many items, so the link is on the item), lets `items.sealed` be null ("not recorded", because the models often can't tell), and adds a `discarded` job status; each item from a group photo gets its own copy of the photo file.
 
 An item points to at most one release, and a release lists the works it contains, so a box set like the Lord of the Rings trilogy is one release with three works. Unique things (the scarecrow, a family photo) have no release and live on their category's fields alone.
 

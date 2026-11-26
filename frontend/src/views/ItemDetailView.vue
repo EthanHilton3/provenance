@@ -163,7 +163,7 @@ const basics = computed(() => {
     ['Condition', 'condition_grade'], ['Sealed', 'sealed'], ['Acquired', 'acquired_on'], ['Where from', 'source'], ['Notes', 'notes'],
   ]
   return rows
-    .filter(([, k]) => (k === 'sealed' ? it.sealed : it[k]))
+    .filter(([, k]) => (k === 'sealed' ? it.sealed != null : it[k]))
     .map(([label, k]) => ({ label, value: display(k, it[k]) }))
 })
 

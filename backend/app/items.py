@@ -39,7 +39,7 @@ class ItemCreate(BaseModel):
     acquired_on: date | None = None
     date_is_approximate: bool = False
     condition_grade: Condition | None = None
-    sealed: bool = False
+    sealed: bool | None = None  # null = not recorded (the AI often can't tell sealed from opened)
     intent: Intent = 'keep'
     thank_you_sent: bool = False
     price_paid: Decimal | None = Field(default=None, ge=0, max_digits=10, decimal_places=2)
@@ -84,7 +84,7 @@ class ItemUpdate(BaseModel):
         sent = self.model_fields_set - {'version'}
         if not sent:
             raise ValueError('nothing to update')
-        for required in ('name', 'category_id', 'date_is_approximate', 'sealed', 'intent', 'thank_you_sent',
+        for required in ('name', 'category_id', 'date_is_approximate', 'intent', 'thank_you_sent',
                          'attributes'):
             if required in sent and getattr(self, required) is None:
                 raise ValueError(f'{required} cannot be null')

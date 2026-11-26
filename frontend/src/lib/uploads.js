@@ -1,6 +1,7 @@
 /**
  * A queue of photos to upload to one item, one at a time, with progress and a per-photo error you can retry.
  * Add uses it before the item exists (files wait until `run(itemId)`); Detail runs it straight away.
+ * Intake runs it with no item (`run(null)`): the photos are stored unattached and handed to intake jobs.
  */
 import { reactive } from 'vue'
 import { api } from './backend'
@@ -38,11 +39,13 @@ export function useUploads() {
       entry.progress = 0
       entry.error = ''
       try {
-        const photo = await api.uploadPhoto(itemId, entry.file, (f) => {
+        const progress = (f) => {
           entry.progress = f
           // Once the bytes are up, the server still resizes and cleans the photo.
           if (f >= 1) entry.status = 'processing'
-        })
+        }
+        const photo = itemId ? await api.uploadPhoto(itemId, entry.file, progress) : await api.uploadIntakePhoto(entry.file, progress)
+        entry.photo = photo
         entry.status = 'done'
         entry.progress = 1
         onDone?.(photo, entry)
